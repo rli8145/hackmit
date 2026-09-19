@@ -4,9 +4,8 @@ Guidance for coding agents (Codex, Devin, Claude Code, Warp, Cursor) and
 teammates. This is the canonical agent-guidance file; `AGENT.md` is a copy —
 **edit this one.**
 
-> **HackMIT 2026 project.** This file outlines *what we're building.* The
-> detailed build plan (work split, build order, conventions) comes later — see
-> **§7**. For track strategy see `company-brain-tracks.md`.
+> **HackMIT 2026 project.** §1–6 outline *what we're building*; §7 is the
+> 3-person build plan. For track strategy see `company-brain-tracks.md`.
 
 ---
 
@@ -96,23 +95,84 @@ enters **9–11 tracks**:
 - **Feature-add:** ElevenLabs + Deepgram (the voice layer).
 - **Free stacks:** OpenAI + Codex, Cognition/Devin, Warp, The Token Company.
 
-## 7. Build plan — *later*
+## 7. Build plan (3 people)
 
-Deferred by design. When we're ready to build, this section will hold the data
-contract discipline, seed-corpus + eval strategy (so "measured better" is a real
-number), build order with the demoable-slice gate, and agent conventions (run
-commands, env-var names, secrets policy). Not yet.
+> ⏱️ **Hour-boxes assume ~12–14h remain. CONFIRM the real submission deadline
+> and shift every H-marker backward from it.** The gate (H8) is the load-bearing
+> checkpoint — everything after it is bonus.
 
-**Team: 3 people.** The work will split across the three of us (rough shape —
-pipeline/extraction · store + graph/conflict detection · UI + demo, with the
-voice layer as the shared cuttable stretch). Detailed split lands here with the
-rest of the build plan.
+### The core object is already defined — see §5
+
+That `Decision` shape is the data contract. Build against small **fixture
+JSONs** that follow it so nobody is blocked on another part (the trick that
+unblocked parallelism on the recon scaffold).
+
+### Split
+
+- **Andrew — P1 · Pipeline.** Ingest adapters (paste / Slack thread /
+  transcript) + **OpenAI** extraction → `Decision` objects. **Owns the data
+  contract and the synthetic seed corpus** (he's generating the test input
+  anyway, and owns the prototype/source context). Also owns **token-spend
+  logging** — a thin wrapper on the OpenAI client that must exist from the
+  *first* call (The Token Company needs a baseline you can't retrofit).
+- **Ryan — P2 · Store + graph.** Storage, **edge/conflict detection**, attention
+  rules as data, and the thin API the UI calls. Owns the **eval scorer** — keep
+  it to ~6 synthetic threads / ~15 labeled decisions: extraction precision +
+  conflict-detection hit rate. A number for the demo, not a benchmark.
+- **Hamid — P3 · UI + demo.** First task: **sanitize the prototype** — strip the
+  `Inference Health` title, replace the `SEED_*` arrays and real Slack/Notion
+  links with synthetic data. That makes the UI committable *and* is the natural
+  first step of wiring it to P2's (Ryan's) API — the seams are exactly where the
+  seed arrays were. Owns the **demo script** from the midpoint.
+
+> Andrew↔Ryan (P1↔P2) can swap if that fits your strengths better; Hamid on
+> P3 is fixed. **Ownership boundary to avoid overlap:** Andrew stops at emitting
+> `Decision` objects to Ryan's API; Ryan owns everything about how they're
+> stored/related; Hamid consumes Ryan's API and never reaches into the pipeline.
+> The `Decision` contract (§5) is the only shared surface — change it only by
+> agreement.
+
+### Hour-boxed order (with the gate)
+
+| Window | Andrew (P1 · Pipeline) | Ryan (P2 · Store + graph) | Hamid (P3 · UI + demo) |
+|--------|------------------------|--------------------------|------------------------|
+| **H0–1** | data contract + fixture JSONs | agree on API shape | wire UI to static fixtures |
+| **H1–4** | extraction end-to-end on one thread | store + API skeleton | prototype sanitized |
+| **H4–8** | more sources / robustness | conflict/edge detection + attention queue | UI wired to live API |
+| **⛔ H8 — THE GATE** | **demoable slice:** paste thread → decision extracted → placed in graph → **conflict caught** → **missing owner flagged** | | |
+| **H8–11** | voice (cuttable) | eval numbers | polish |
+| **Last 2h** | pre-ingest corpus; cache everything; **only the final paste runs live** | | rehearse |
+
+### Hard requirements, with cut priorities
+
+Three people can't protect everything — so each track requirement has a cut line:
+
+1. **OpenAI API in extraction** — free, it *is* the pipeline. **Never cut.**
+2. **Elasticsearch** — the **riskiest dependency.** Timebox setup to **1 hour**;
+   if it fights you, fall back to **SQLite / in-memory + embedding similarity**
+   and drop the Elastic track. Don't sink 3 hours into it out of loyalty.
+3. **Voice** — only *after* the gate. The halves are independent: **Deepgram**
+   STT ingest unlocks Deepgram's track alone; **ElevenLabs** spoken answers
+   unlocks theirs alone. If squeezed, ship one half.
+4. **Codex / Devin / Warp** — zero build cost, but each needs an anecdote. All
+   three people jot one concrete "Codex/Devin did X" moment **as they go**;
+   retrofitting Sunday morning produces generic filler.
+
+### Conventions
+
+- **Secrets — never commit.** Read keys from env; keep a `.env.example`:
+  `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY`,
+  `ELASTIC_URL` / `ELASTIC_API_KEY`.
+- **Synthetic data only** in this repo (see notes below).
+- **Seed data** lives in `seed/`. **The demo path is sacred** — no refactors the
+  night before judging.
+- **Run command:** _(P-owner fills in once the stack lands.)_
 
 ## 8. Open TODO
 
 - [ ] **Confirm this year's four official main tracks** from the day-of app
   (`dayof.hackmit.org/prizes`) and lock the primary. Still unconfirmed.
-- [ ] Write the build plan (§7) when we move from outline to implementation.
+- [ ] **Confirm the real submission deadline** and shift §7's hour-boxes to it.
 
 ---
 
