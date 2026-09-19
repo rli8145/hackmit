@@ -1,0 +1,12 @@
+# The deterministic core (schemas, generator, prematcher, scorer, run.py)
+# runs on the Python 3.10+ STANDARD LIBRARY ALONE — no install needed:
+#     python run.py
+#
+# You only need these once you wire the real LLM preparer/auditor
+# (agents/preparer.py :: run_preparer_llm):
+
+anthropic>=0.40.0
+claude-agent-sdk>=0.1.0
+
+# Optional, for person 3's human-review UI + scorecard dashboard:
+# streamlit>=1.40.0

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "EV-1-001",
+    "type": "payment_received",
+    "date": "2026-01-03",
+    "amount": 3851.07,
+    "party": "Northwind Traders",
+    "links": [],
+    "meta": {}
+  },
+  {
+    "id": "EV-1-002",
+    "type": "payment_sent",
+    "date": "2026-01-19",
+    "amount": 4531.96,
+    "party": "Umbrella Logistics",
+    "links": [],
+    "meta": {}
+  },
+  {
+    "id": "EV-1-003",
+    "type": "payment_sent",
+    "date": "2026-01-25",
+    "amount": 1997.47,
+    "party": "Umbrella Logistics",
+    "links": [],
+    "meta": {}
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "BANK-1-012",
+    "date": "2026-02-02",
+    "amount": -1715.59,
+    "description": "ACH DEBIT ACME SUPPLY"
+  },
+  {
+    "id": "BANK-1-009",
+    "date": "2026-01-07",
+    "amount": 2599.31,
+    "description": "ACH CREDIT CONTOSO LTD REF BULK"
+  },
+  {
+    "id": "BANK-1-013",
+    "date": "2026-01-10",
+    "amount": -12.4,
+    "description": "MISC DEBIT 4471 \u2014 NO REF"
+  }
+]

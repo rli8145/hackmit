@@ -1,0 +1,38 @@
+[
+  {
+    "group_id": "GRP-1-001",
+    "bank_line_ids": [
+      "BANK-1-001"
+    ],
+    "ledger_entry_ids": [
+      "GL-1-001"
+    ],
+    "category": "exact",
+    "resolution": "1:1 exact match",
+    "should_escalate": false
+  },
+  {
+    "group_id": "GRP-1-002",
+    "bank_line_ids": [
+      "BANK-1-002"
+    ],
+    "ledger_entry_ids": [
+      "GL-1-002"
+    ],
+    "category": "exact",
+    "resolution": "1:1 exact match",
+    "should_escalate": false
+  },
+  {
+    "group_id": "GRP-1-003",
+    "bank_line_ids": [
+      "BANK-1-003"
+    ],
+    "ledger_entry_ids": [
+      "GL-1-003"
+    ],
+    "category": "exact",
+    "resolution": "1:1 exact match",
+    "should_escalate": false
+  }
+]

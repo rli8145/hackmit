@@ -1,0 +1,23 @@
+[
+  {
+    "id": "GL-1-010",
+    "date": "2026-01-07",
+    "account": "1200 A/R",
+    "amount": 1358.25,
+    "memo": "Invoice paid \u2014 Contoso Ltd"
+  },
+  {
+    "id": "GL-1-011",
+    "date": "2026-01-07",
+    "account": "1200 A/R",
+    "amount": 821.47,
+    "memo": "Invoice paid \u2014 Contoso Ltd"
+  },
+  {
+    "id": "GL-1-007",
+    "date": "2026-01-18",
+    "account": "1000 Cash",
+    "amount": -3721.18,
+    "memo": "Payment to Globex Cloud"
+  }
+]
