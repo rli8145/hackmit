@@ -162,14 +162,23 @@ Three people can't protect everything — so each track requirement has a cut li
   `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY`,
   `ELASTIC_URL` / `ELASTIC_API_KEY`.
 - **Synthetic data only** in this repo (see notes below).
-- **Seed data** lives in `seed/`. **The demo path is sacred** — no refactors the
-  night before judging.
-- **Run command:** _(P-owner fills in once the stack lands.)_
+- **Seed data** lives in `company_brain/seed/`. **The demo path is sacred** — no
+  refactors the night before judging.
+- **Run commands:** `python run_demo.py` (offline end-to-end + eval);
+  `python -m company_brain.api` (live UI at http://localhost:8000).
 
-## 8. Open TODO
+## 8. Status & open TODO
 
-- [ ] Sanitized synthetic version of the reference prototype (Hamid, Phase 2).
-- [ ] Fill in the `Run` command in §7 once the stack is chosen.
+**A working end-to-end implementation now exists** (see `README.md`): stdlib
+server + UI, extraction (OpenAI + offline fallback), decision graph, all four
+attention rules, cited text/voice answers, eval at 100% on the seed, token
+metering. Real integrations activate behind env keys (`.env.example`).
+
+Remaining:
+- [ ] Add real API keys and validate the OpenAI / Deepgram / ElevenLabs /
+  Elastic paths (all wired, untested without keys).
+- [ ] Harder eval inputs to stress the LLM extraction path beyond the seed.
+- [ ] Polish the UI graph view (currently topic-grouped cards, not a node graph).
 
 ---
 
