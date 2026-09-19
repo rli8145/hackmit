@@ -91,10 +91,12 @@ def _extract_llm(text, source_type, link, decided_on) -> list[Decision]:
     data = json.loads(resp.choices[0].message.content)
     out: list[Decision] = []
     for i, d in enumerate(data.get("decisions", [])):
+        raw_owner = d.get("owner")
+        owner = raw_owner.lower().strip() if isinstance(raw_owner, str) and raw_owner.strip() else None
         out.append(Decision(
             id=_mk_id(link, i),
             statement=d.get("statement", "").strip(),
-            owner=(d.get("owner") or None),
+            owner=owner,
             decided_on=decided_on,
             source=Source(type=source_type, link=link),
             evidence=[Evidence(verbatim_quote=q, link=link)
