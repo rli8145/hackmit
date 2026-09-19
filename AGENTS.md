@@ -89,17 +89,15 @@ superseded-but-unedited, drifted assumption, unowned.
 Full strategy in `company-brain-tracks.md`. In short, one submission credibly
 enters **9–11 tracks**:
 
-- **Primary:** Dropbox (chaos → CompanyOS), Elastic (find the signal), plus the
-  official main-track entry (Dev Tools / Healthtech — *TBD, confirm the four*).
+- **Primary:** Dropbox (chaos → CompanyOS), Elastic (find the signal), plus an
+  official main-track entry (Dev Tools / Healthtech).
 - **Value-prop fits:** Meta (team alignment), Ramp (save time & money).
 - **Feature-add:** ElevenLabs + Deepgram (the voice layer).
 - **Free stacks:** OpenAI + Codex, Cognition/Devin, Warp, The Token Company.
 
 ## 7. Build plan (3 people)
 
-> ⏱️ **Hour-boxes assume ~12–14h remain. CONFIRM the real submission deadline
-> and shift every H-marker backward from it.** The gate (H8) is the load-bearing
-> checkpoint — everything after it is bonus.
+> **The gate is the load-bearing checkpoint — everything after it is bonus.**
 
 ### The core object is already defined — see §5
 
@@ -123,7 +121,7 @@ unblocked parallelism on the recon scaffold).
   `Inference Health` title, replace the `SEED_*` arrays and real Slack/Notion
   links with synthetic data. That makes the UI committable *and* is the natural
   first step of wiring it to P2's (Ryan's) API — the seams are exactly where the
-  seed arrays were. Owns the **demo script** from the midpoint.
+  seed arrays were. Owns the **demo script** from Phase 3 onward.
 
 > Andrew↔Ryan (P1↔P2) can swap if that fits your strengths better; Hamid on
 > P3 is fixed. **Ownership boundary to avoid overlap:** Andrew stops at emitting
@@ -132,25 +130,25 @@ unblocked parallelism on the recon scaffold).
 > The `Decision` contract (§5) is the only shared surface — change it only by
 > agreement.
 
-### Hour-boxed order (with the gate)
+### Order (phases, with the gate)
 
-| Window | Andrew (P1 · Pipeline) | Ryan (P2 · Store + graph) | Hamid (P3 · UI + demo) |
-|--------|------------------------|--------------------------|------------------------|
-| **H0–1** | data contract + fixture JSONs | agree on API shape | wire UI to static fixtures |
-| **H1–4** | extraction end-to-end on one thread | store + API skeleton | prototype sanitized |
-| **H4–8** | more sources / robustness | conflict/edge detection + attention queue | UI wired to live API |
-| **⛔ H8 — THE GATE** | **demoable slice:** paste thread → decision extracted → placed in graph → **conflict caught** → **missing owner flagged** | | |
-| **H8–11** | voice (cuttable) | eval numbers | polish |
-| **Last 2h** | pre-ingest corpus; cache everything; **only the final paste runs live** | | rehearse |
+| Phase | Andrew (P1 · Pipeline) | Ryan (P2 · Store + graph) | Hamid (P3 · UI + demo) |
+|-------|------------------------|--------------------------|------------------------|
+| **1 · Setup** | data contract + fixture JSONs | agree on API shape | wire UI to static fixtures |
+| **2 · Core** | extraction end-to-end on one thread | store + API skeleton | prototype sanitized |
+| **3 · Integrate** | more sources / robustness | conflict/edge detection + attention queue | UI wired to live API |
+| **⛔ THE GATE** | **demoable slice:** paste thread → decision extracted → placed in graph → **conflict caught** → **missing owner flagged** | | |
+| **4 · After the gate** | voice (cuttable) | eval numbers | polish |
+| **5 · Final** | pre-ingest corpus; cache everything; **only the final paste runs live** | | rehearse |
 
 ### Hard requirements, with cut priorities
 
 Three people can't protect everything — so each track requirement has a cut line:
 
 1. **OpenAI API in extraction** — free, it *is* the pipeline. **Never cut.**
-2. **Elasticsearch** — the **riskiest dependency.** Timebox setup to **1 hour**;
+2. **Elasticsearch** — the **riskiest dependency.** Give it one focused attempt;
    if it fights you, fall back to **SQLite / in-memory + embedding similarity**
-   and drop the Elastic track. Don't sink 3 hours into it out of loyalty.
+   and drop the Elastic track. Don't sink the night into it out of loyalty.
 3. **Voice** — only *after* the gate. The halves are independent: **Deepgram**
    STT ingest unlocks Deepgram's track alone; **ElevenLabs** spoken answers
    unlocks theirs alone. If squeezed, ship one half.
@@ -170,9 +168,8 @@ Three people can't protect everything — so each track requirement has a cut li
 
 ## 8. Open TODO
 
-- [ ] **Confirm this year's four official main tracks** from the day-of app
-  (`dayof.hackmit.org/prizes`) and lock the primary. Still unconfirmed.
-- [ ] **Confirm the real submission deadline** and shift §7's hour-boxes to it.
+- [ ] Sanitized synthetic version of the reference prototype (Hamid, Phase 2).
+- [ ] Fill in the `Run` command in §7 once the stack is chosen.
 
 ---
 
