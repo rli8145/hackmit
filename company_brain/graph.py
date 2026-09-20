@@ -44,7 +44,13 @@ _SUPERSEDE_SIGNALS = ("supersede", "changing", "going forward", "instead of",
                       "no longer", "replace", "update", "now ", "revised")
 _STOP = {"the", "our", "and", "for", "with", "that", "this", "stay", "around",
          "current", "levels", "costs", "cost", "about", "into", "from", "will",
-         "each", "they", "them", "these", "those", "their", "over", "under"}
+         "each", "they", "them", "these", "those", "their", "over", "under",
+         # interrogatives + auxiliaries: these carry no topic meaning, but a
+         # question is mostly made of them, so leaving them in lets a query
+         # "match" a decision on the word "what" alone.
+         "what", "who", "whom", "when", "where", "why", "how", "does", "did",
+         "are", "was", "were", "can", "could", "should", "would", "have",
+         "has", "had", "you", "your", "any", "not", "but", "its"}
 
 
 def _supersede_signal(text: str) -> str | None:
