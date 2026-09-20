@@ -23,6 +23,7 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from company_brain import fake_graph
 from company_brain.extract import extract
 from company_brain.seed.corpus import SOURCES
 from company_brain.store import Brain
@@ -31,11 +32,34 @@ from company_brain.voice import answer_query, speak
 
 WEB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "index.html")
 BRAIN = Brain()
+_FAKE = fake_graph.generate(1000)   # display-only backdrop, generated once
 
 
 def _load_seed() -> None:
     for s in sorted(SOURCES, key=lambda x: x.date):
         BRAIN.ingest(extract(s.text, s.type, s.link, s.date))
+
+
+def _full_graph() -> dict:
+    """Real decisions (interactive) embedded in the ~1000-node backdrop."""
+    real = BRAIN.graph()
+    for n in real["nodes"]:
+        n["real"] = True
+    nodes = real["nodes"] + _FAKE["nodes"]
+    edges = real["edges"] + list(_FAKE["edges"])
+
+    # anchor each real decision into a fake cluster that shares a topic word
+    fake_by_topic: dict[str, list[str]] = {}
+    for fn in _FAKE["nodes"]:
+        fake_by_topic.setdefault(fn["topic"], []).append(fn["id"])
+    for rn in real["nodes"]:
+        words = set(rn["topic"].split("-"))
+        pool = [fid for t, ids in fake_by_topic.items()
+                if words & set(t.split("-")) for fid in ids]
+        pool = pool or [fn["id"] for fn in _FAKE["nodes"][:50]]
+        for fid in pool[:3]:
+            edges.append({"source": rn["id"], "type": "depends_on", "target": fid})
+    return {"nodes": nodes, "edges": edges}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -67,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         elif path == "/api/graph":
-            self._json(BRAIN.graph())
+            self._json(_full_graph())
         elif path == "/api/attention":
             self._json(BRAIN.attention())
         elif path == "/api/decision":
