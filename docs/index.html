@@ -15,7 +15,7 @@
     --ink:#d8d4f5; --dim:#7b75ab;
     /* accents carry meaning, never decoration */
     --cyan:#4fe3ff; --amber:#ffb23d; --magenta:#ff5cc8; --violet:#a98bff; --mint:#5ef2a8;
-    --px:2px; --top:54px;
+    --px:2px; --top:54px; --rail:302px;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
@@ -50,6 +50,10 @@
     display:flex;align-items:center;gap:10px;padding:0 10px}
   .ask{display:flex;align-items:center;gap:8px;flex:1;max-width:560px}
   .top button,.row button{white-space:nowrap}
+  /* the rail's column exactly: the CANON box lines up with the panel beneath it,
+     and the negative margin eats the flex gap so .ask still starts on that edge */
+  .markcol{flex:none;width:var(--rail);margin-right:-10px;display:flex;align-items:center}
+  .markcol .mark{width:100%}
   .mark{display:flex;align-items:baseline;gap:9px;white-space:nowrap}
   .mark b{font-family:"Silkscreen",monospace;font-weight:700;font-size:13px;color:#fff;letter-spacing:.5px}
   .mark span{font-size:12px;color:var(--dim)}
@@ -84,7 +88,7 @@
     vertical-align:-2px;margin-left:2px}
 
   /* ---- left rail ---- */
-  .rail{position:fixed;top:var(--top);bottom:32px;left:10px;width:302px;z-index:18;
+  .rail{position:fixed;top:var(--top);bottom:32px;left:10px;width:var(--rail);z-index:18;
     display:flex;flex-direction:column}
   .rail .scroll{overflow-y:auto;flex:1;padding:8px}
   .att{display:block;width:100%;text-align:left;padding:8px 9px 9px;margin-bottom:6px;
@@ -172,12 +176,14 @@
 
   .railtoggle{display:none}
   @media (max-width:980px){
-    .rail{width:270px}
+    :root{--rail:270px}
     .drawer{width:340px}
   }
   @media (max-width:760px){
     :root{--top:96px}
     .mark span{display:none}
+    .markcol{width:auto;margin-right:0}
+    .markcol .mark{width:auto}
     .top{height:auto;flex-wrap:wrap;padding:8px 8px 0;gap:8px}
     .grow{display:none}
     .ask{order:3;flex-basis:100%;max-width:none;margin-bottom:8px}
@@ -199,7 +205,7 @@
 
 <!-- top strip -->
 <div class="top">
-  <div class="mark out" style="padding:9px 11px"><b>CANON</b><span>decision layer</span></div>
+  <div class="markcol"><div class="mark out" style="padding:9px 11px"><b>CANON</b><span>— Company Brain</span></div></div>
   <div class="ask">
     <div class="console in">
       <span class="caret">&gt;</span>
