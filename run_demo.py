@@ -11,6 +11,16 @@ eval numbers + token ledger. This is the narrated version of the live demo.
 from __future__ import annotations
 
 import os
+import sys
+
+# Windows consoles default to a legacy codepage (cp1252/cp437) that can't
+# encode the box-drawing/emoji characters below and crashes with
+# UnicodeEncodeError before anything prints. Force UTF-8 output when possible.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
 
 from company_brain.eval import run_eval
 from company_brain.tokens import LEDGER

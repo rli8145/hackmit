@@ -161,6 +161,15 @@ def _score_extraction(s: SeedSource, decisions: list[Decision], res: EvalResult)
 
 if __name__ == "__main__":
     import os
+    import sys
+
+    # Same Windows-console UTF-8 guard as run_demo.py (see there for why).
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
+
     res, _ = run_eval()
     mode = "OpenAI" if os.environ.get("OPENAI_API_KEY") else "fallback (offline)"
     print(f"extraction mode: {mode}\n")
