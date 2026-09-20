@@ -49,14 +49,19 @@ async function jpost(u,b){
   if(u==='/api/extract') return clientExtract(b.text);
   return {};
 }
+const _STOPW=new Set(__STOPWORDS__);
 const _kw=s=>new Set((String(s).toLowerCase().match(/[a-z0-9][a-z0-9+/.-]{2,}/g)||[])
-  .filter(w=>!['the','our','and','for','with','that','this'].includes(w)));
+  .filter(w=>!_STOPW.has(w)));
 function clientQuery(q){
   const qk=_kw(q), boost={live:.12,needs_review:0,superseded:-.12};
   let best=null,bs=-1;
   for(const id in state.decisions){ const d=state.decisions[id];
     const hay=d.statement+' '+(d.evidence||[]).map(e=>e.verbatim_quote).join(' ');
     const hk=_kw(hay); let ov=0; qk.forEach(w=>{if(hk.has(w))ov++;});
+    /* must share a real term with the question: without this the live-status
+       boost alone (+0.12) clears the gate below, so an off-corpus question
+       came back as a confident cited decision. Mirrors answer_query(). */
+    if(ov===0) continue;
     const score=ov/(qk.size||1)+(boost[d.status]||0);
     if(score>bs){bs=score;best=d;} }
   if(!best||bs<=0) return {answer:"I don't have a decision on record for that.",decision:null,citation:null};
@@ -111,6 +116,15 @@ function clientExtract(text){
   state.attention=items;
   return {extracted:[dec],attention:items};
 }"""
+
+# Keep the client-side keyword filter honest: bake in the SAME stopword set
+# the server uses instead of a hand-copied list. The previous hardcoded copy
+# had drifted to 7 of the 25 words, so the Pages build scored keyword overlap
+# differently from `python -m company_brain.api` on identical input.
+from company_brain.graph import _STOP  # noqa: E402
+
+STATIC_LAYER = STATIC_LAYER.replace("__STOPWORDS__", json.dumps(sorted(_STOP)))
+assert "__STOPWORDS__" not in STATIC_LAYER
 
 STATIC_BOOT = ("async function boot(){\n"
                "  try{ state=await (await fetch('data.json')).json(); }\n"
