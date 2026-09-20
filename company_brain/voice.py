@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 
+from company_brain.graph import keywords
 from company_brain.store import Brain
 
 
@@ -51,10 +52,23 @@ def answer_query(brain: Brain, query: str) -> dict:
     decision plus its verbatim evidence — the brain never answers uncited.
     """
     results = brain.search(query, k=3)
-    if not results or results[0][1] <= 0:
+
+    # A decision only counts as an answer if it actually shares a term with
+    # the question. Without this, search()'s live-status boost (+0.12) alone
+    # clears the score gate, so an off-corpus question ("who won the world
+    # cup in 1998") came back as a confident, fully cited decision about the
+    # CDN. Same guard similarity() already applies in graph.py.
+    qk = keywords(query)
+
+    def _grounded(d) -> bool:
+        hay = d.statement + " " + " ".join(e.verbatim_quote for e in d.evidence)
+        return bool(qk & keywords(hay))
+
+    grounded = [(d, s) for d, s in results if s > 0 and _grounded(d)]
+    if not grounded:
         return {"answer": "I don't have a decision on record for that.",
                 "decision": None, "citation": None}
-    top, score = results[0]
+    top, score = grounded[0]
     owner = top.owner or "nobody yet"
     status = {"live": "current", "needs_review": "flagged (a newer decision may "
               "have changed it)", "superseded": "superseded"}.get(top.status, top.status)
