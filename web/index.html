@@ -338,6 +338,25 @@ function initGraph(g){
     if(c&&gn[k]){ n.x=c.x/gn[k]+(Math.random()-.5)*80; n.y=c.y/gn[k]+(Math.random()-.5)*80; } }
   SX=new Float64Array(nodes.length); SY=new Float64Array(nodes.length);
   alpha = firstLoad ? 1 : 0.3;   // gentle reheat on ingest, full settle on first load
+  if(firstLoad) settle();        // ...and the cold settle happens before anything is painted
+}
+
+// The simulation is how the graph FINDS its shape — it isn't something worth
+// watching. Cold, a thousand nodes fly in from random positions for several
+// seconds, which reads as chaos rather than as structure. So on first load we
+// run it to rest headlessly and paint the finished layout. The reheat after an
+// ingest IS worth watching (you see the new decision arrive and pull into its
+// region), so that one stays animated.
+function settle(maxSteps=400){
+  const t0=performance.now();
+  while(alpha>=0.02 && maxSteps-- > 0){
+    tick();
+    if(performance.now()-t0 > 1200) break;   // budget: never hang the boot
+  }
+  // Reached rest: freeze it, so the opening frame is final. Ran out of budget
+  // on a slower machine: leave a little energy in it and let the visible loop
+  // finish the job — a graph still arranging itself beats one frozen halfway.
+  if(alpha<0.02) alpha=0;
 }
 
 function tick(){
