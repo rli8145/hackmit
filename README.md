@@ -1,5 +1,7 @@
 # Canon
 
+<img src="canon.svg" alt="CANON — the decision layer for your org" width="100%" />
+
 **The context hub for an organization.** Canon reads the places a
 team already talks — Slack, meeting transcripts, Notion, pasted notes, audio —
 extracts the **decisions** buried in the noise, and keeps them in a living,
