@@ -25,7 +25,7 @@ data = {
     "decisions": {d.id: d.to_dict() for d in api.BRAIN.decisions},
 }
 os.makedirs(os.path.join(HERE, "docs"), exist_ok=True)
-with open(os.path.join(HERE, "docs", "data.json"), "w") as f:
+with open(os.path.join(HERE, "docs", "data.json"), "w", encoding="utf-8", newline="\n") as f:
     json.dump(data, f)
 
 # ---- 2. generate docs/index.html from web/index.html -----------------------
@@ -118,14 +118,14 @@ STATIC_BOOT = ("async function boot(){\n"
                "  refresh(); loop();\n"
                "}\nboot();")
 
-with open(os.path.join(HERE, "web", "index.html")) as f:
+with open(os.path.join(HERE, "web", "index.html"), encoding="utf-8") as f:
     html = f.read()
 
 assert DYNAMIC in html, "dynamic jget/jpost block not found in web/index.html"
 assert "refresh(); loop();" in html, "entrypoint not found in web/index.html"
 html = html.replace(DYNAMIC, STATIC_LAYER).replace("refresh(); loop();", STATIC_BOOT)
 
-with open(os.path.join(HERE, "docs", "index.html"), "w") as f:
+with open(os.path.join(HERE, "docs", "index.html"), "w", encoding="utf-8", newline="\n") as f:
     f.write(html)
 
 # ---- report ----------------------------------------------------------------
