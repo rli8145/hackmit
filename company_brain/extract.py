@@ -152,6 +152,15 @@ def _informativeness(line: str) -> int:
     return score
 
 
+def _sentence_score(s: str) -> int:
+    score = len(s)
+    if re.search(r"\d", s):
+        score += 25
+    if any(kw in s.lower() for _, kws in _TOPIC_KEYWORDS for kw in kws):
+        score += 25
+    return score
+
+
 def _clean_statement(line: str) -> str:
     s = re.sub(r"^\s*[A-Za-z][\w'-]*:\s*", "", line)      # drop "name: "
     s = re.sub(r"(?i)\bdecision:\s*", "", s)
@@ -161,6 +170,11 @@ def _clean_statement(line: str) -> str:
     s = re.sub(r"(?i)\bwe'll\b\s*", "", s)
     s = re.sub(r"(?i)\bgoing with\b", "use", s)
     s = re.sub(r"(?i)\bwe're\b\s*", "", s)
+    # keep only the most decision-bearing sentence (drop chatty preamble)
+    parts = [p.strip(" .") for p in re.split(r"\.\s+", s) if p.strip(" .")]
+    if len(parts) > 1:
+        s = max(parts, key=_sentence_score)
+    s = re.sub(r"(?i)^(yes|yeah|ok|okay|so|well|right|sure)\b[\s,—-]*", "", s)
     s = s.strip(" .")
     return s[:1].upper() + s[1:] if s else s
 

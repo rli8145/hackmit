@@ -48,6 +48,10 @@ def relate(new: Decision, decisions: list[Decision]) -> None:
             p.edges.append(Edge(type="conflicts", target_id=new.id))
 
 
+def _short(s: str, n: int = 52) -> str:
+    return s if len(s) <= n else s[:n].rstrip() + "…"
+
+
 def compute_attention(decisions: list[Decision]) -> list[dict]:
     """Derive the attention queue from final graph state."""
     by_id = {d.id: d for d in decisions}
@@ -69,22 +73,23 @@ def compute_attention(decisions: list[Decision]) -> list[dict]:
         # 1. unowned
         if d.owner is None and d.status != "superseded":
             items.append({"type": "unowned", "decision_id": d.id,
-                          "message": "Nobody is accountable — assign an owner.",
+                          "message": f"“{_short(d.statement)}” has no owner — assign one.",
                           "related_id": None})
         # 2. superseded-but-unedited
         if d.status == "needs_review" and d.id in superseded_by:
-            newer = superseded_by[d.id]
+            newer = by_id[superseded_by[d.id]]
             items.append({"type": "superseded", "decision_id": d.id,
-                          "message": f"A newer decision ({newer}) changed this; "
-                                     f"it still reads as-is — check it still holds.",
-                          "related_id": newer})
+                          "message": f"“{_short(d.statement)}” was changed by a newer "
+                                     f"decision (“{_short(newer.statement, 40)}”) — "
+                                     f"check it still holds.",
+                          "related_id": newer.id})
         # 3. assumption drift
         for a in d.assumptions:
             hit = keywords(a) & changed_keywords
             if hit and d.status == "live":
                 items.append({"type": "assumption_drift", "decision_id": d.id,
-                              "message": f"An assumption underneath this has moved "
-                                         f"({', '.join(sorted(hit))}) — re-verify.",
+                              "message": f"“{_short(d.statement)}” rests on an assumption "
+                                         f"that moved ({', '.join(sorted(hit))}) — re-verify.",
                               "related_id": None})
                 break
 
@@ -96,7 +101,7 @@ def compute_attention(decisions: list[Decision]) -> list[dict]:
             if a.topic == b.topic and (a.id, b.id) not in seen:
                 seen.add((a.id, b.id))
                 items.append({"type": "overlap", "decision_id": a.id,
-                              "message": f"Two live decisions cover the same ground "
-                                         f"as {b.id} — reconcile the record.",
+                              "message": f"“{_short(a.statement)}” overlaps "
+                                         f"“{_short(b.statement, 40)}” — reconcile.",
                               "related_id": b.id})
     return items
