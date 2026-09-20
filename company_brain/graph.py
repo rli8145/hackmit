@@ -186,7 +186,7 @@ _rules_cache: list[dict] | None = None
 def rules() -> list[dict]:
     global _rules_cache
     if _rules_cache is None:
-        with open(RULES_PATH) as f:
+        with open(RULES_PATH, encoding="utf-8") as f:
             _rules_cache = sorted(json.load(f), key=lambda r: r["severity"])
     return _rules_cache
 
