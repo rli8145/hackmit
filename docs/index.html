@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Company Brain</title>
+<style>
+  :root{
+    --ink:#2b2f38; --dim:#6b7280; --accent:#7aa2ff; --accent2:#b79dff;
+    --glass:rgba(255,255,255,.55); --glass-strong:rgba(255,255,255,.72);
+    --stroke:rgba(255,255,255,.7); --shadow:0 8px 40px rgba(60,70,120,.16);
+    --live:#59c08a; --review:#e0a94a; --superseded:#9aa3b0;
+    --red:#ef8b8b; --amber:#e0a94a; --violet:#b79dff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    color:var(--ink);overflow:hidden;
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    background:
+      radial-gradient(60vw 60vw at 12% 8%, #ffe3ec 0%, transparent 60%),
+      radial-gradient(55vw 55vw at 88% 12%, #dbe7ff 0%, transparent 60%),
+      radial-gradient(60vw 60vw at 75% 92%, #e3f9ee 0%, transparent 60%),
+      radial-gradient(50vw 50vw at 20% 95%, #efe3ff 0%, transparent 60%),
+      linear-gradient(120deg,#f4f6fb,#eef1f8);
+  }
+  canvas{position:fixed;inset:0;display:block}
+  .glass{
+    background:var(--glass);backdrop-filter:blur(30px) saturate(180%);
+    -webkit-backdrop-filter:blur(30px) saturate(180%);
+    border:1px solid var(--stroke);border-radius:22px;box-shadow:var(--shadow);
+  }
+  /* top bar */
+  .topbar{position:fixed;top:18px;left:18px;right:18px;z-index:10;
+    display:flex;align-items:center;gap:16px;padding:12px 18px}
+  .brand{font-weight:680;font-size:17px;letter-spacing:.2px;white-space:nowrap}
+  .brand small{font-weight:500;color:var(--dim);font-size:12px;margin-left:8px}
+  .grow{flex:1}
+  .askwrap{display:flex;align-items:center;gap:8px;flex:1;max-width:520px}
+  .askwrap input{flex:1;background:var(--glass-strong);border:1px solid var(--stroke);
+    color:var(--ink);border-radius:14px;padding:10px 14px;font-size:13px;outline:none}
+  .askwrap input::placeholder{color:#98a1b0}
+  button{border:0;border-radius:14px;padding:10px 16px;font-weight:600;cursor:pointer;
+    font-size:13px;color:#fff;background:linear-gradient(120deg,var(--accent),var(--accent2));
+    box-shadow:0 4px 16px rgba(122,162,255,.35)}
+  button.ghost{background:var(--glass-strong);color:var(--ink);border:1px solid var(--stroke);
+    box-shadow:none}
+  .tok{color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* answer toast */
+  .answer{position:fixed;top:78px;left:50%;transform:translateX(-50%);z-index:11;
+    max-width:640px;width:min(92vw,640px);padding:14px 40px 14px 18px;display:none}
+  .answer .cite{color:var(--dim);font-size:12px;margin-top:6px;font-style:italic}
+  .answer .x{position:absolute;top:10px;right:14px;cursor:pointer;color:var(--dim);font-size:16px}
+  /* attention panel */
+  .panel{position:fixed;top:82px;left:18px;z-index:9;width:320px;max-height:calc(100vh - 350px);
+    display:flex;flex-direction:column;padding:16px}
+  .panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);
+    margin:0 0 12px}
+  .att-list{overflow-y:auto;display:flex;flex-direction:column;gap:9px}
+  .att{background:var(--glass-strong);border:1px solid var(--stroke);border-radius:14px;
+    padding:11px 13px;cursor:pointer;border-left:4px solid #cbd5e1;transition:.15s}
+  .att:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(60,70,120,.12)}
+  .att.unowned{border-left-color:var(--red)}
+  .att.superseded{border-left-color:var(--amber)}
+  .att.assumption_drift{border-left-color:var(--violet)}
+  .att.overlap{border-left-color:var(--accent)}
+  .att .k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim)}
+  .att .m{margin-top:3px;font-size:13px}
+  /* legend */
+  .legend{position:fixed;bottom:18px;left:18px;z-index:9;padding:12px 14px;
+    display:flex;flex-direction:column;gap:6px;font-size:12px;max-width:220px}
+  .legend .row{display:flex;align-items:center;gap:8px;color:var(--dim)}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .hint{position:fixed;bottom:18px;right:18px;z-index:9;padding:10px 14px;font-size:12px;
+    color:var(--dim)}
+  /* drawer */
+  #drawer{position:fixed;top:18px;right:18px;bottom:18px;width:400px;z-index:12;
+    padding:22px;overflow-y:auto;transform:translateX(120%);transition:.22s cubic-bezier(.4,0,.2,1)}
+  #drawer.open{transform:translateX(0)}
+  #drawer .x{float:right;cursor:pointer;color:var(--dim);font-size:20px;line-height:1}
+  .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.5px;padding:3px 9px;border-radius:20px}
+  .badge.live{background:rgba(89,192,138,.18);color:#2f9c68}
+  .badge.needs_review{background:rgba(224,169,74,.2);color:#b9832b}
+  .badge.superseded{background:rgba(154,163,176,.22);color:#6b7480}
+  .lbl{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 6px}
+  .ev{background:var(--glass-strong);border:1px solid var(--stroke);border-radius:12px;
+    padding:11px 13px;margin:8px 0;border-left:3px solid var(--accent)}
+  .ev a,a.src{color:#5a7fe0;text-decoration:none;font-size:12px}
+  .meta{color:var(--dim);font-size:12.5px}
+  .unowned-dot{color:var(--red);font-weight:600}
+  /* modal */
+  .scrim{position:fixed;inset:0;background:rgba(40,45,60,.25);backdrop-filter:blur(4px);
+    z-index:20;display:none;align-items:center;justify-content:center}
+  .scrim.open{display:flex}
+  .modal{width:min(92vw,560px);padding:22px}
+  .modal textarea{width:100%;height:120px;background:var(--glass-strong);color:var(--ink);
+    border:1px solid var(--stroke);border-radius:14px;padding:12px;font-size:13px;resize:vertical;outline:none}
+  .modal h2{margin:0 0 12px;font-size:16px}
+</style>
+</head>
+<body>
+<canvas id="graph"></canvas>
+
+<div class="topbar glass">
+  <div class="brand">Company Brain<small>the decision layer for your org</small></div>
+  <div class="grow"></div>
+  <div class="askwrap">
+    <input id="q" placeholder="Ask the brain…  e.g. what's our free tier?"
+           onkeydown="if(event.key==='Enter')ask()">
+    <button onclick="ask()">Ask</button>
+  </div>
+  <button class="ghost" onclick="openModal()">＋ Source</button>
+  <span class="tok" id="tok"></span>
+</div>
+
+<div class="answer glass" id="answer"></div>
+
+<div class="panel glass">
+  <h2>Needs attention · <span id="attn-count">0</span></h2>
+  <div class="att-list" id="attention"></div>
+</div>
+
+<div class="legend glass" id="legend"></div>
+<div class="hint glass">scroll to zoom · drag to pan · hover a node · ○ ringed = real decision</div>
+
+<div id="drawer" class="glass"></div>
+
+<div class="scrim" id="scrim" onclick="if(event.target===this)closeModal()">
+  <div class="modal glass">
+    <h2>Add a source</h2>
+    <textarea id="src" placeholder="Paste a Slack thread, meeting transcript, or notes… the brain extracts the decision, drops it into the graph, and flags conflicts."></textarea>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="ghost" onclick="closeModal()">Cancel</button>
+      <button onclick="ingest()">Extract decision</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- static data layer (no backend) ----------
+   The hosted build bakes the graph/attention/decisions into data.json and
+   runs search + paste-extract in the browser, so jget/jpost route to local
+   state instead of an API. */
+let state={graph:{nodes:[],edges:[]},attention:[],decisions:{}};
+async function jget(u){
+  if(u==='/api/graph') return state.graph;
+  if(u==='/api/attention') return state.attention;
+  if(u.indexOf('/api/decision')===0){ const id=new URLSearchParams(u.split('?')[1]).get('id');
+    return state.decisions[id]||{error:'not found'}; }
+  if(u==='/api/tokens') return {total:0};
+  return {};
+}
+async function jpost(u,b){
+  if(u==='/api/query'||u==='/api/voice/ask') return clientQuery(b.q);
+  if(u==='/api/extract') return clientExtract(b.text);
+  return {};
+}
+const _kw=s=>new Set((String(s).toLowerCase().match(/[a-z0-9][a-z0-9+/.-]{2,}/g)||[])
+  .filter(w=>!['the','our','and','for','with','that','this'].includes(w)));
+function clientQuery(q){
+  const qk=_kw(q), boost={live:.12,needs_review:0,superseded:-.12};
+  let best=null,bs=-1;
+  for(const id in state.decisions){ const d=state.decisions[id];
+    const hay=d.statement+' '+(d.evidence||[]).map(e=>e.verbatim_quote).join(' ');
+    const hk=_kw(hay); let ov=0; qk.forEach(w=>{if(hk.has(w))ov++;});
+    const score=ov/(qk.size||1)+(boost[d.status]||0);
+    if(score>bs){bs=score;best=d;} }
+  if(!best||bs<=0) return {answer:"I don't have a decision on record for that.",decision:null,citation:null};
+  const owner=best.owner||'nobody yet';
+  const st={live:'current',needs_review:'flagged (a newer decision may have changed it)',superseded:'superseded'}[best.status]||best.status;
+  return {answer:`The ${st} decision is: ${best.statement} Owner: ${owner}. Decided ${best.decided_on}.`,
+    decision:best, citation:(best.evidence&&best.evidence[0])?best.evidence[0].verbatim_quote:null};
+}
+const _CUES=['decided','decision:',"we'll",'going with','standardize on','we should',"let's go with",'changing the free tier'];
+const _TOPICS=[['infrastructure',['aws','gcp','infra','migrat','region']],['pricing-pro',['pro at','$','price pro']],
+  ['pricing-free-tier',['free tier','calls/day','api calls']],['hiring',['hire','hiring','engineer']],
+  ['tech-stack',['python','standardize','framework']]];
+function _clean(l){ let s=l.replace(/^\s*[A-Za-z][\w'-]*:\s*/,'').replace(/decision:\s*/i,'')
+  .replace(/^\s*-\s*/,'').replace(/we (decided|are going|'re going) (to|that|with)?\s*/i,'')
+  .replace(/we'll\s*/i,'').replace(/going with/i,'use').replace(/we're\s*/i,'');
+  const parts=s.split(/\.\s+/).map(p=>p.trim()).filter(Boolean);
+  if(parts.length>1) s=parts.reduce((a,b)=>((/\d/.test(b)?25:0)+b.length)>((/\d/.test(a)?25:0)+a.length)?b:a);
+  s=s.replace(/^(yes|ok|so|well|right)\b[\s,—-]*/i,'').trim().replace(/^\.|\.$/,'').trim();
+  return s? s[0].toUpperCase()+s.slice(1):s; }
+function _owner(lines){ const j=lines.join(' ').toLowerCase();
+  for(const l of lines){ if(/i'll own|i own|i will own/i.test(l)){ const m=l.match(/^\s*([A-Za-z][\w'-]*)\s*:/); if(m) return m[1].toLowerCase(); } }
+  if(/nobody|no one|tbd|unassigned|no owner/.test(j)) return null; return null; }
+function _topic(t){ t=t.toLowerCase(); let best='general',bh=0;
+  for(const [k,ws] of _TOPICS){ const h=ws.filter(w=>t.includes(w)).length; if(h>bh){bh=h;best=k;} } return best; }
+function clientExtract(text){
+  const lines=text.split('\n').map(s=>s.trim()).filter(Boolean);
+  const dl=lines.filter(l=>_CUES.some(c=>l.toLowerCase().includes(c)));
+  if(!dl.length) return {extracted:[],attention:state.attention};
+  const best=dl.reduce((a,b)=>(_clean(b).length>_clean(a).length?b:a));
+  const stmt=_clean(best), owner=_owner(lines), topic=_topic(text);
+  const id='UI-'+Object.keys(state.decisions).length+'-'+(text.length%997);
+  const link='paste://ui', today=new Date().toISOString().slice(0,10);
+  const dec={id,statement:stmt,status:'live',owner,decided_on:today,
+    source:{type:'paste',link},evidence:dl.map(l=>({verbatim_quote:l,link})),assumptions:[],edges:[],topic,real:true};
+  // supersede a live same-topic decision if one exists (mirrors relate())
+  let peer=Object.values(state.decisions).find(d=>d.topic===topic&&d.status==='live');
+  if(peer){ dec.edges.push({type:'supersedes',target_id:peer.id}); peer.status='needs_review';
+    const pn=state.graph.nodes.find(n=>n.id===peer.id); if(pn)pn.status='needs_review'; }
+  else { const near=state.graph.nodes.find(n=>n.topic&&topic.split('-').some(w=>n.topic.split('-').includes(w)));
+    if(near) dec.edges.push({type:'depends_on',target_id:near.id}); }
+  state.decisions[id]=dec;
+  state.graph.nodes.push({id,statement:stmt,status:'live',owner,topic,real:true});
+  dec.edges.forEach(e=>state.graph.edges.push({source:id,type:e.type,target:e.target_id}));
+  const items=[...state.attention];
+  if(peer) items.unshift({type:'superseded',decision_id:peer.id,
+    message:`“${peer.statement.slice(0,52)}” was changed by a newer decision (“${stmt.slice(0,40)}”) — check it still holds.`,related_id:id});
+  if(!owner) items.unshift({type:'unowned',decision_id:id,message:`“${stmt}” has no owner — assign one.`,related_id:null});
+  state.attention=items;
+  return {extracted:[dec],attention:items};
+}
+
+/* ---------- soft topic colors ---------- */
+const PALETTE = ['#7aa2ff','#b79dff','#59c08a','#e0a94a','#ef8b8b','#5ec8d8',
+  '#f19cd0','#8fd18a','#c3a3f0','#f5b880','#7fb2f0','#e78fa8','#9ad0b0','#d0b36e'];
+const topicColor = {};
+function colorFor(topic){
+  if(!(topic in topicColor)){
+    let h=0; for(const c of topic) h=(h*31+c.charCodeAt(0))|0;
+    topicColor[topic]=PALETTE[Math.abs(h)%PALETTE.length];
+  }
+  return topicColor[topic];
+}
+
+/* ---------- canvas force graph ---------- */
+const cv=$('#graph'), ctx=cv.getContext('2d');
+let DPR=Math.min(2,window.devicePixelRatio||1), W=0,H=0;
+let nodes=[], edges=[], idMap={}, view={x:0,y:0,scale:.55}, alpha=1;
+let hover=-1, neigh=new Set(), vtarget=null;
+const _zp=parseFloat(new URLSearchParams(location.search).get('zoom'));
+if(_zp) view.scale=Math.max(.12,Math.min(4,_zp));
+
+function resize(){ W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR;
+  cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize',resize); resize();
+
+function initGraph(g){
+  // preserve positions across refreshes so an ingest doesn't relayout the world
+  const prev={}; nodes.forEach(n=>prev[n.id]={x:n.x,y:n.y,vx:n.vx,vy:n.vy});
+  const firstLoad = nodes.length===0;
+  idMap={};
+  nodes=g.nodes.map((n,i)=>{ idMap[n.id]=i; const p=prev[n.id];
+    return {...n, x:p?p.x:(Math.random()-.5)*1600, y:p?p.y:(Math.random()-.5)*1600,
+            vx:p?p.vx:0, vy:p?p.vy:0, deg:0, _new:!p}; });
+  edges=g.edges.filter(e=>idMap[e.source]!=null&&idMap[e.target]!=null)
+    .map(e=>({s:idMap[e.source],t:idMap[e.target]}));
+  edges.forEach(e=>{nodes[e.s].deg++;nodes[e.t].deg++;});
+  nodes.forEach(n=> n.r=(n.real?9:3.2)+Math.min(7,n.deg*0.45));
+  // drop new nodes next to a linked, already-placed neighbour (not the void)
+  for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
+    if(a._new&&!b._new){a.x=b.x+(Math.random()-.5)*70;a.y=b.y+(Math.random()-.5)*70;a._new=false;}
+    else if(b._new&&!a._new){b.x=a.x+(Math.random()-.5)*70;b.y=a.y+(Math.random()-.5)*70;b._new=false;} }
+  alpha = firstLoad ? 1 : 0.3;   // gentle reheat on ingest, full settle on first load
+}
+
+function tick(){
+  if(alpha<0.02) return;
+  const cell=90, grid=new Map();
+  const key=(x,y)=>((x/cell|0)+'_'+(y/cell|0));
+  for(let i=0;i<nodes.length;i++){ const k=key(nodes[i].x,nodes[i].y);
+    let b=grid.get(k); if(!b){b=[];grid.set(k,b);} b.push(i); }
+  // repulsion (local, via grid)
+  for(const n of nodes){
+    const cx=n.x/cell|0, cy=n.y/cell|0;
+    for(let gx=cx-1;gx<=cx+1;gx++)for(let gy=cy-1;gy<=cy+1;gy++){
+      const b=grid.get(gx+'_'+gy); if(!b)continue;
+      for(const j of b){ const m=nodes[j]; if(m===n)continue;
+        let dx=n.x-m.x, dy=n.y-m.y, d2=dx*dx+dy*dy+.01;
+        if(d2<cell*cell*4){ const f=900*alpha/d2; n.vx+=dx*f; n.vy+=dy*f; } } }
+  }
+  // springs
+  for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
+    let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, f=(d-46)*0.02*alpha/d;
+    a.vx+=dx*f; a.vy+=dy*f; b.vx-=dx*f; b.vy-=dy*f; }
+  // gravity + integrate
+  for(const n of nodes){ n.vx-=n.x*0.008*alpha; n.vy-=n.y*0.008*alpha;
+    n.x+=n.vx*=.86; n.y+=n.vy*=.86; }
+  alpha*=0.985;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.translate(W/2+view.x, H/2+view.y); ctx.scale(view.scale,view.scale);
+  // edges
+  ctx.lineWidth=Math.max(.3,0.6/view.scale);
+  ctx.strokeStyle='rgba(120,130,170,.16)'; ctx.beginPath();
+  for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
+    ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); }
+  ctx.stroke();
+  // highlighted neighbor edges
+  if(hover>=0){ ctx.lineWidth=Math.max(.8,1.4/view.scale);
+    ctx.strokeStyle='rgba(90,110,200,.5)'; ctx.beginPath();
+    for(const e of edges){ if(e.s===hover||e.t===hover){
+      const a=nodes[e.s], b=nodes[e.t]; ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); } }
+    ctx.stroke(); }
+  // nodes
+  for(let i=0;i<nodes.length;i++){ const n=nodes[i];
+    const dim = hover>=0 && i!==hover && !neigh.has(i);
+    ctx.globalAlpha = (n.status==='superseded'?0.4:1) * (dim?0.25:1);
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,6.2832);
+    ctx.fillStyle=colorFor(n.topic); ctx.fill();
+    if(n.real){ ctx.lineWidth=2.4/view.scale; ctx.strokeStyle='#fff'; ctx.stroke();
+      ctx.lineWidth=1.2/view.scale; ctx.strokeStyle='rgba(90,110,200,.9)'; ctx.stroke(); }
+  }
+  ctx.globalAlpha=1;
+  // labels: hovered node (+ its neighbours) always; real nodes fade in as you
+  // zoom past the threshold so the default view stays uncluttered
+  const LABEL_ZOOM=0.85;
+  const realAlpha=Math.max(0,Math.min(.9,(view.scale-LABEL_ZOOM)/0.35));
+  ctx.font=`${12/view.scale}px -apple-system,sans-serif`; ctx.fillStyle='#2b2f38';
+  ctx.textAlign='center';
+  for(let i=0;i<nodes.length;i++){ const n=nodes[i];
+    const isHover=i===hover, isNeigh=hover>=0&&neigh.has(i);
+    const isSeed = n.real && n.id.indexOf('DEC-')===0;   // the 7 narrative decisions
+    let a=0;
+    if(isHover) a=1;
+    else if(isNeigh) a=0.9;
+    else if(isSeed) a=0.92;             // always labelled — they are the story
+    else if(n.real) a=realAlpha;        // generated real decisions fade in on zoom
+    if(a<=0.02) continue;
+    const t = n.statement.length>42? n.statement.slice(0,42)+'…':n.statement;
+    ctx.globalAlpha=a;
+    ctx.fillText(t, n.x, n.y - n.r - 5/view.scale);
+  }
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+function loop(){
+  tick();
+  if(vtarget){ view.x+=(vtarget.x-view.x)*.18; view.y+=(vtarget.y-view.y)*.18;
+    view.scale+=(vtarget.scale-view.scale)*.18;
+    if(Math.abs(vtarget.x-view.x)<.5&&Math.abs(vtarget.scale-view.scale)<.005) vtarget=null; }
+  draw(); requestAnimationFrame(loop);
+}
+
+/* ---------- interaction ---------- */
+function toWorld(sx,sy){ return {x:(sx-W/2-view.x)/view.scale, y:(sy-H/2-view.y)/view.scale}; }
+let drag=null;
+cv.addEventListener('mousedown',e=>{ vtarget=null; drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false}; });
+addEventListener('mouseup',()=>{ if(drag&&!drag.moved) clickNode(); drag=null; });
+addEventListener('mousemove',e=>{
+  if(drag){ view.x=drag.vx+(e.clientX-drag.x); view.y=drag.vy+(e.clientY-drag.y);
+    if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>4) drag.moved=true; return; }
+  const w=toWorld(e.clientX,e.clientY); let best=-1,bd=1e9;
+  for(let i=0;i<nodes.length;i++){ const dx=nodes[i].x-w.x,dy=nodes[i].y-w.y,d=dx*dx+dy*dy;
+    if(d<bd && d < (nodes[i].r+6)**2){bd=d;best=i;} }
+  if(best!==hover){ hover=best; neigh=new Set();
+    if(best>=0){ neigh.add(best);
+      for(const e2 of edges){ if(e2.s===best)neigh.add(e2.t); if(e2.t===best)neigh.add(e2.s);} }
+    cv.style.cursor = best>=0 ? 'pointer':'default'; }
+});
+cv.addEventListener('wheel',e=>{ e.preventDefault(); vtarget=null;
+  const f=Math.exp(-e.deltaY*0.0012), ns=Math.max(.12,Math.min(4,view.scale*f));
+  const w=toWorld(e.clientX,e.clientY);
+  view.scale=ns; view.x=e.clientX-W/2-w.x*ns; view.y=e.clientY-H/2-w.y*ns;
+},{passive:false});
+function clickNode(){ if(hover<0)return; const n=nodes[hover]; if(n.real) openDrawer(n.id); }
+
+/* ---------- data + panels ---------- */
+async function refresh(){
+  const [g,att,tok]=await Promise.all([jget('/api/graph'),jget('/api/attention'),jget('/api/tokens')]);
+  initGraph(g); renderAttention(att); renderLegend(g);
+  $('#tok').textContent=(tok.total>0?`⚡ ${tok.total} tokens · `:'')+`${g.nodes.length} decisions mapped`;
+}
+function renderAttention(items){
+  $('#attn-count').textContent=items.length;
+  $('#attention').innerHTML=items.map(a=>`
+    <div class="att ${a.type}" onclick="attnClick('${a.decision_id}')">
+      <div class="k">${a.type.replace(/_/g,' ')}</div>
+      <div class="m">${esc(a.message)}</div></div>`).join('')||'<div class="meta">All clear.</div>';
+}
+function renderLegend(g){
+  const topics=[...new Set(g.nodes.map(n=>n.topic))].slice(0,6);
+  $('#legend').innerHTML='<div class="k" style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.6px">topics</div>'+
+    topics.map(t=>`<div class="row"><span class="dot" style="background:${colorFor(t)}"></span>${esc(t)}</div>`).join('');
+}
+async function openDrawer(id){
+  const d=await jget('/api/decision?id='+encodeURIComponent(id)); if(d.error)return;
+  $('#drawer').classList.add('open');
+  $('#drawer').innerHTML=`
+    <span class="x" onclick="document.getElementById('drawer').classList.remove('open')">✕</span>
+    <span class="badge ${d.status}">${d.status.replace('_',' ')}</span>
+    <h2 style="margin:14px 0 6px;font-size:17px">${esc(d.statement)}</h2>
+    <div class="meta">Owner: ${d.owner?esc(d.owner):'<span class="unowned-dot">unowned</span>'} · decided ${d.decided_on} · ${esc(d.topic)}</div>
+    ${d.source?`<div class="lbl">Source</div><a class="src" href="${d.source.link}" target="_blank">${esc(d.source.type)} — ${esc(d.source.link)}</a>`:''}
+    ${d.assumptions.length?`<div class="lbl">Assumptions</div>${d.assumptions.map(a=>`<div class="meta">• ${esc(a)}</div>`).join('')}`:''}
+    <div class="lbl">Evidence (verbatim)</div>
+    ${d.evidence.map(e=>`<div class="ev">“${esc(e.verbatim_quote)}”<br><a href="${e.link}" target="_blank">open in source ↗</a></div>`).join('')||'<div class="meta">—</div>'}
+    ${d.edges.length?`<div class="lbl">Relationships</div>${d.edges.map(e=>{const t=nodes[idMap[e.target_id]];return `<div class="meta">${esc(e.type.replace('_',' '))} → ${t?esc(t.statement):esc(e.target_id)}</div>`;}).join('')}`:''}`;
+}
+let answerTimer=null;
+async function ask(){
+  const q=$('#q').value.trim(); if(!q)return;
+  const r=await jpost('/api/query',{q}); const el=$('#answer'); el.style.display='block';
+  el.innerHTML=`<span class="x" onclick="hideAnswer()">✕</span>${esc(r.answer)}${r.citation?`<div class="cite">cited: “${esc(r.citation)}”</div>`:''}`;
+  clearTimeout(answerTimer); answerTimer=setTimeout(hideAnswer,8000);
+  if(r.decision){ const i=idMap[r.decision.id]; if(i!=null) focusNode(i); }
+}
+function hideAnswer(){ $('#answer').style.display='none'; }
+function focusNode(i){ const n=nodes[i]; const s=1.15;
+  vtarget={scale:s, x:-n.x*s, y:-n.y*s}; hover=i; neigh=new Set([i]);
+  for(const e of edges){ if(e.s===i)neigh.add(e.t); if(e.t===i)neigh.add(e.s);} }
+function attnClick(id){ const i=idMap[id]; if(i!=null) focusNode(i); openDrawer(id); }
+function openModal(){ $('#scrim').classList.add('open'); }
+function closeModal(){ $('#scrim').classList.remove('open'); }
+async function ingest(){
+  const text=$('#src').value.trim(); if(!text)return;
+  const today=new Date().toISOString().slice(0,10);
+  const r=await jpost('/api/extract',{text,source_type:'paste',date:today});
+  $('#src').value=''; closeModal(); await refresh();
+  if(r.extracted&&r.extracted.length){ const id=r.extracted[0].id;
+    const i=idMap[id]; if(i!=null) focusNode(i); openDrawer(id); }
+}
+async function boot(){
+  try{ state=await (await fetch('data.json')).json(); }
+  catch(e){ console.error('failed to load data.json',e); }
+  refresh(); loop();
+}
+boot();
+</script>
+</body>
+</html>
