@@ -2,7 +2,7 @@
 Synthetic real decisions.  (extends the hand-written seed corpus.)
 
 Generates ~60 FULL `Decision` objects — statement, owner, source, verbatim
-evidence, topic — that are ingested into the Brain like any other decision.
+evidence, topic — that are ingested into Canon like any other decision.
 Unlike the display-only fake backdrop (`fake_graph.py`), these are real: they
 open in the drawer, carry evidence, and flow through relate()/attention.
 
@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import random
 
-from company_brain.fake_graph import OWNERS, TOPICS
-from company_brain.schema import Decision, Evidence, Source
+from canon.fake_graph import OWNERS, TOPICS
+from canon.schema import Decision, Evidence, Source
 
 SUBS = ["cdn", "db", "sso", "billing", "mobile", "sla", "schema", "gateway",
         "retention", "rollout", "vendor", "cadence", "registry", "portal",

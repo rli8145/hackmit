@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Company Brain</title>
+<title>Canon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@700&display=swap" rel="stylesheet">
@@ -199,11 +199,11 @@
 
 <!-- top strip -->
 <div class="top">
-  <div class="mark out" style="padding:9px 11px"><b>COMPANY&nbsp;BRAIN</b><span>decision layer</span></div>
+  <div class="mark out" style="padding:9px 11px"><b>CANON</b><span>decision layer</span></div>
   <div class="ask">
     <div class="console in">
       <span class="caret">&gt;</span>
-      <input id="q" aria-label="Ask the brain" placeholder="ask the brain — what's our free tier?"
+      <input id="q" aria-label="Ask Canon" placeholder="ask Canon — what's our free tier?"
              onkeydown="if(event.key==='Enter')ask()">
     </div>
     <button class="key" onclick="ask()">ASK</button>
@@ -248,7 +248,7 @@
   <div class="dlg out" role="dialog" aria-modal="true" aria-label="Add a source">
     <div class="titlebar"><span class="tt">ADD A SOURCE</span><button class="xb" onclick="closeDialog()" aria-label="Close">✕</button></div>
     <div class="body">
-      <p>Paste a Slack thread, a meeting transcript, or raw notes. The brain pulls out the decision, drops it into the graph, and flags anything it contradicts.</p>
+      <p>Paste a Slack thread, a meeting transcript, or raw notes. Canon pulls out the decision, drops it into the graph, and flags anything it contradicts.</p>
       <div class="in"><textarea id="src" aria-label="Source text"></textarea></div>
       <div class="row">
         <p class="note" id="note" role="alert"></p>
@@ -359,7 +359,7 @@ function colorFor(topic){
   }
   return topicColor[topic];
 }
-/* Hubs are the graph's regions (company_brain/hubs.py tags every node with
+/* Hubs are the graph's regions (canon/hubs.py tags every node with
    hub + subcluster). Colour carries the hub; position carries it too, via the
    centroid forces in tick(). Amber and magenta are deliberately NOT used here
    — those two mean "supersedes" and "conflicts" on the edges, and a colour
@@ -763,7 +763,7 @@ async function ingest(){
   const before=nodes.filter(n=>n.real).length;
   const r=await jpost('/api/extract',{text,source_type:'paste',date:new Date().toISOString().slice(0,10)});
   if(!r.extracted||!r.extracted.length){
-    note('No decision in there. The brain looks for a commitment — a line like “we decided to…”.');
+    note('No decision in there. Canon looks for a commitment — a line like “we decided to…”.');
     return;
   }
   $('#src').value=''; closeDialog(); await refresh();

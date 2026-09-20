@@ -1,12 +1,12 @@
 """
-Synthetic large-graph generator — makes the brain look like a mature org.
+Synthetic large-graph generator — makes the canon look like a mature org.
 
 Produces ~1000 decision-like nodes clustered into topic groups with edges
 (supersedes / depends_on / conflicts), so the graph view reads like a real
 company's institutional memory (Obsidian-style). Deterministic (seeded).
 
 Purely for the visualization. The real 7 decisions (with attention, evidence,
-etc.) come from the Brain; these fake nodes are display-only and marked
+etc.) come from Canon; these fake nodes are display-only and marked
 `real: false`.
 """
 

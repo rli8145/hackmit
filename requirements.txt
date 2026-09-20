@@ -1,6 +1,6 @@
-# Company Brain core runs on the Python 3.10+ STANDARD LIBRARY ALONE.
+# Canon core runs on the Python 3.10+ STANDARD LIBRARY ALONE.
 #   python run_demo.py
-#   python -m company_brain.api
+#   python -m canon.api
 #
 # The packages below are only needed to activate the real integrations
 # (each behind an env key; see .env.example). Install what you use:

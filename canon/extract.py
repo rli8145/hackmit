@@ -10,7 +10,7 @@ Two paths, same return type:
   - fallback (deterministic, offline): rule-based so the whole system runs and
     demos without any keys. Extracts one primary decision per source.
 
-Every call meters tokens into company_brain.tokens.LEDGER.
+Every call meters tokens into canon.tokens.LEDGER.
 """
 
 from __future__ import annotations
@@ -19,10 +19,13 @@ import json
 import os
 import re
 
-from company_brain.schema import Decision, Evidence, Source
-from company_brain.tokens import LEDGER
+from canon.schema import Decision, Evidence, Source
+from canon.tokens import LEDGER
 
-MODEL = os.environ.get("CB_OPENAI_MODEL", "gpt-4o-mini")
+# CB_OPENAI_MODEL is the pre-rename name — still honoured so a teammate's
+# existing .env keeps working.
+MODEL = (os.environ.get("CANON_OPENAI_MODEL")
+         or os.environ.get("CB_OPENAI_MODEL") or "gpt-4o-mini")
 
 DECISION_CUES = (
     "decided", "decision:", "we'll", "we're going with", "going with",

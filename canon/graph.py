@@ -32,11 +32,11 @@ import json
 import os
 import re
 
-from company_brain.schema import Decision, Edge
+from canon.schema import Decision, Edge
 
 RULES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rules.json")
 
-# Tuned against company_brain/eval.py — not by vibes. `conflict` is the bar for
+# Tuned against canon/eval.py — not by vibes. `conflict` is the bar for
 # "these two are about the same thing"; below `related` they are unrelated.
 THRESHOLDS = {"conflict": 0.40, "related": 0.22}
 

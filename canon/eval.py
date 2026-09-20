@@ -24,10 +24,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from company_brain.extract import extract
-from company_brain.schema import Decision
-from company_brain.seed.corpus import SOURCES, SeedSource
-from company_brain.store import Brain
+from canon.extract import extract
+from canon.schema import Decision
+from canon.seed.corpus import SOURCES, SeedSource
+from canon.store import Canon
 
 
 @dataclass
@@ -78,22 +78,22 @@ class EvalResult:
         ] + [f"  • {n}" for n in self.notes])
 
 
-def run_eval(use_llm: bool | None = None) -> tuple[EvalResult, Brain]:
+def run_eval(use_llm: bool | None = None) -> tuple[EvalResult, Canon]:
     res = EvalResult()
-    brain = Brain()
+    canon = Canon()
     ordered = sorted(SOURCES, key=lambda s: s.date)
 
     for s in ordered:
         res.sources += 1
         decisions = extract(s.text, s.type, s.link, s.date, use_llm=use_llm)
-        brain.ingest(decisions)
+        canon.ingest(decisions)
         _score_extraction(s, decisions, res)
 
-    _score_relations(brain, res)
-    return res, brain
+    _score_relations(canon, res)
+    return res, canon
 
 
-def _score_relations(brain: Brain, res: EvalResult) -> None:
+def _score_relations(canon: Canon, res: EvalResult) -> None:
     """Grade the edges the graph derived against the labeled relations.
 
     A label says "the decision from this source supersedes / conflicts with an
@@ -111,11 +111,11 @@ def _score_relations(brain: Brain, res: EvalResult) -> None:
     res.conflicts_expected = sum(
         1 for s in SOURCES for lbl in s.labels if lbl.relation == "conflicts")
 
-    by_id = {d.id: d for d in brain.decisions}
+    by_id = {d.id: d for d in canon.decisions}
     seen: set[frozenset] = set()
     hit_topics: set[tuple[str, str]] = set()
 
-    for d in brain.decisions:
+    for d in canon.decisions:
         for e in d.edges:
             other = by_id.get(e.target_id)
             if other is None:

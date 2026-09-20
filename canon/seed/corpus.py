@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from company_brain.schema import LabeledDecision
+from canon.schema import LabeledDecision
 
 
 @dataclass

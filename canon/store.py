@@ -1,5 +1,5 @@
 """
-Store + the Brain.  (Owner: Ryan / P2.)
+Store + the Canon itself.  (Owner: Ryan / P2.)
 
 Holds decisions, ingests new ones (running edge/conflict detection), answers
 queries, and renders the graph + attention queue for the UI.
@@ -14,11 +14,11 @@ from __future__ import annotations
 
 import difflib
 
-from company_brain.graph import compute_attention, keywords, relate
-from company_brain.schema import Decision
+from canon.graph import compute_attention, keywords, relate
+from canon.schema import Decision
 
 
-class Brain:
+class Canon:
     def __init__(self) -> None:
         self.decisions: list[Decision] = []
 

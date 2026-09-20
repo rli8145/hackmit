@@ -1,6 +1,6 @@
-# Company Brain — HackMIT 2026 Project & Track Strategy
+# Canon — HackMIT 2026 Project & Track Strategy
 
-> **One-liner:** Company Brain is the context hub for an organization. It
+> **One-liner:** Canon is the context hub for an organization. It
 > reads everywhere your team already talks — Fellow meeting transcripts, Slack,
 > Notion, Docs — extracts the **decisions** buried in the noise, and keeps them
 > in a living, queryable **decision graph** with owners, evidence, and conflict
@@ -19,7 +19,7 @@ leaves, the "why" leaves with them.
 ## What it does
 
 - **Reads live sources, read-only:** Slack (across channels), Fellow
-  transcripts, Notion, Docs. "Brain is listening everywhere."
+  transcripts, Notion, Docs. "Canon is listening everywhere."
 - **Extracts decisions** from any source — a transcript, a Slack thread, or
   pasted notes — through one pipeline.
 - **Builds a decision graph** with typed edges: `depends on`, `supersedes`,
@@ -42,7 +42,7 @@ leaves, the "why" leaves with them.
                            └───────────────┘   supersede/conflict └──────────────┘
                                    ▲                                      │
                           voice / text query ◀──────────────────────────┘
-                          "ask the brain about any decision"
+                          "ask Canon about any decision"
 ```
 
 ---
@@ -53,7 +53,7 @@ leaves, the "why" leaves with them.
 > day-of app (`dayof.hackmit.org/prizes`) and lock the primary. The mapping
 > below assumes HackMIT's recurring thematic categories.
 
-One Company Brain submission can credibly enter **9–11 tracks**. Prioritize the
+One Canon submission can credibly enter **9–11 tracks**. Prioritize the
 🟢 primaries; the rest are either a small feature-add or a free toolchain/write-up.
 
 ### Official main tracks (pending confirmation)
@@ -63,23 +63,23 @@ One Company Brain submission can credibly enter **9–11 tracks**. Prioritize th
 | **Dev Tools** 🟢 | Strong | Decision / ADR memory for engineering orgs — tracks technical decisions across Slack + Notion, flags when a newer decision supersedes an old one. |
 | **Healthtech** 🟢 | Strong | Pitch as institutional memory for clinical & healthcare teams: care protocols and compliance decisions with owners + a citable audit trail. |
 | **Social Good** | Medium | Org transparency & accountability — every decision has an owner, evidence, and a trail; fights institutional knowledge loss. |
-| **Fintech / Education** | Reach | A decision-audit layer for finance teams, or a "school decisions brain." Reachable pivots if one of these is an official track. |
+| **Fintech / Education** | Reach | A decision-audit layer for finance teams, or a "school decisions canon." Reachable pivots if one of these is an official track. |
 
 ### Sponsor challenges — strong fits
 
 - **Dropbox — "Turn digital chaos into something useful"** 🟢 *(lead here)*
   Near-bullseye. Their own example is **CompanyOS** — "an internal tool that maps
   your organization by connecting people and teams with the goals and work they
-  own." Company Brain is a decision-centric CompanyOS.
+  own." Canon is a decision-centric CompanyOS.
 - **Elastic — "Find the Signal"** 🟢
   Turn messy org comms into insights, answers, and actions. Back the decision
   store + search with **Elasticsearch** and it's a direct hit.
 - **Meta — "Bringing People Closer Together with AI"** 🟢
   Meta's own prompts — *"synthesize a group discussion into plans,"* *"organize
-  scattered updates into a shared story"* — are exactly what Company Brain does to
+  scattered updates into a shared story"* — are exactly what Canon does to
   meetings and Slack. Reframe around **team alignment & shared understanding.**
 - **Ramp — "Save Time. Save Money."** 🟢
-  Wide-open challenge, dead-center value prop: Company Brain saves **time**
+  Wide-open challenge, dead-center value prop: Canon saves **time**
   (find any decision + its owner in seconds instead of digging through months of
   Slack) and **money** (no costly re-litigated or silently-conflicting
   decisions, faster onboarding). No specific tech required — just frame the ROI.
@@ -87,13 +87,13 @@ One Company Brain submission can credibly enter **9–11 tracks**. Prioritize th
 ### Add a small feature → unlock a track
 
 - **ElevenLabs — voice agent** 🎙️
-  Add a conversational **"ask the brain"** layer: *"What did we decide about
-  pricing, and who owns it?"* → the brain answers out loud, with a citation.
+  Add a conversational **"ask Canon"** layer: *"What did we decide about
+  pricing, and who owns it?"* → Canon answers out loud, with a citation.
   ElevenLabs rewards agentic depth, low latency, and personality — a talking
   institutional memory is a genuinely novel use case.
 - **Deepgram — audio ingestion** 🎙️
   Ingest **raw meeting audio** via Deepgram speech-to-text as a source (beyond
-  Fellow's pre-made transcripts). Qualifies the project and widens what the brain
+  Fellow's pre-made transcripts). Qualifies the project and widens what Canon
   can hear. $200 free credit + a starter repo.
 - **Arrowstreet — textual analysis** *(stretch)*
   Our evidence/verbatim-citation + structured extraction from corporate text maps
@@ -109,7 +109,7 @@ One Company Brain submission can credibly enter **9–11 tracks**. Prioritize th
   writing, testing, and shipping alongside you. Judged on creativity, novelty,
   polish. Perfect for an ambitious multi-integration build.
 - **Warp — "Best Developer Tool"** — lean into the **Dev Tools** framing (a
-  decision brain for engineering orgs) and Company Brain *is* a developer tool.
+  decision canon for engineering orgs) and Canon *is* a developer tool.
   You don't have to build *in* Warp, but using it is encouraged. Winners get
   Keychron keyboards.
 - **The Token Company — LLM cost saving** — the extraction pipeline is
@@ -122,11 +122,11 @@ One Company Brain submission can credibly enter **9–11 tracks**. Prioritize th
 
 The single highest-leverage feature-add. A **conversational voice interface**:
 
-1. **ElevenLabs** for the agent voice + real-time dialogue ("ask the brain").
+1. **ElevenLabs** for the agent voice + real-time dialogue ("ask Canon").
 2. **Deepgram** for ingesting raw meeting audio into the pipeline.
 
 Payoff: it makes the demo *feel alive* (you talk to it on stage), and it unlocks
-**two more sponsor tracks** for maybe half a day of work. A brain you can
+**two more sponsor tracks** for maybe half a day of work. A canon you can
 *converse with* about your company's decisions is a memorable 2-minute demo.
 
 ---
@@ -142,7 +142,7 @@ Payoff: it makes the demo *feel alive* (you talk to it on stage), and it unlocks
 | **5** | If time: **Meta** reframe write-up (team alignment) + **Arrowstreet** stretch. |
 
 **Demo discipline:** one flawless 2-minute path — paste a messy Slack thread →
-watch the brain extract a decision, place it in the graph, catch that it
+watch Canon extract a decision, place it in the graph, catch that it
 *conflicts* with an older one, flag the missing owner, then *ask it out loud*
 what the current decision is and hear it answer with a citation. Cache anything
 slow; only run the crowd-pleaser live.

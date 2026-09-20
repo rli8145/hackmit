@@ -1,5 +1,5 @@
 """
-Build the static GitHub Pages version of Company Brain into docs/.
+Build the static GitHub Pages version of Canon into docs/.
 
 Single source of truth: docs/index.html is GENERATED from web/index.html by
 swapping the network data layer (fetch → baked data.json) for a client-side
@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import os
 
-from company_brain import api  # sets up BRAIN + fake backdrop at import
+from canon import api  # sets up CANON + fake backdrop at import
 
 HERE = os.path.dirname(__file__)
 
@@ -21,8 +21,8 @@ HERE = os.path.dirname(__file__)
 api._load_seed()
 data = {
     "graph": api._full_graph(),
-    "attention": api.BRAIN.attention(),
-    "decisions": {d.id: d.to_dict() for d in api.BRAIN.decisions},
+    "attention": api.CANON.attention(),
+    "decisions": {d.id: d.to_dict() for d in api.CANON.decisions},
 }
 os.makedirs(os.path.join(HERE, "docs"), exist_ok=True)
 with open(os.path.join(HERE, "docs", "data.json"), "w", encoding="utf-8", newline="\n") as f:
@@ -120,8 +120,8 @@ function clientExtract(text){
 # Keep the client-side keyword filter honest: bake in the SAME stopword set
 # the server uses instead of a hand-copied list. The previous hardcoded copy
 # had drifted to 7 of the 25 words, so the Pages build scored keyword overlap
-# differently from `python -m company_brain.api` on identical input.
-from company_brain.graph import _STOP  # noqa: E402
+# differently from `python -m canon.api` on identical input.
+from canon.graph import _STOP  # noqa: E402
 
 STATIC_LAYER = STATIC_LAYER.replace("__STOPWORDS__", json.dumps(sorted(_STOP)))
 assert "__STOPWORDS__" not in STATIC_LAYER

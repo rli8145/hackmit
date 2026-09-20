@@ -1,17 +1,17 @@
-# AGENTS.md — Company Brain
+# AGENTS.md — Canon
 
 Guidance for coding agents (Codex, Devin, Claude Code, Warp, Cursor) and
 teammates. This is the canonical agent-guidance file; `AGENT.md` is a copy —
 **edit this one.**
 
 > **HackMIT 2026 project.** §1–6 outline *what we're building*; §7 is the
-> 3-person build plan. For track strategy see `company-brain-tracks.md`.
+> 3-person build plan. For track strategy see `canon-tracks.md`.
 
 ---
 
 ## 1. One-liner
 
-**Company Brain is the context hub for an organization.** It reads the places
+**Canon is the context hub for an organization.** It reads the places
 a team already talks — Slack, meeting transcripts, Notion, pasted notes, audio —
 extracts the **decisions** buried in the noise, and keeps them in a living,
 queryable **decision graph** with owners, evidence, and conflict detection.
@@ -86,7 +86,7 @@ superseded-but-unedited, drifted assumption, unowned.
 
 ## 6. Tracks we're targeting
 
-Full strategy in `company-brain-tracks.md`. In short, one submission credibly
+Full strategy in `canon-tracks.md`. In short, one submission credibly
 enters **9–11 tracks**:
 
 - **Primary:** Dropbox (chaos → CompanyOS), Elastic (find the signal), plus an
@@ -162,10 +162,10 @@ Three people can't protect everything — so each track requirement has a cut li
   `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY`,
   `ELASTIC_URL` / `ELASTIC_API_KEY`.
 - **Synthetic data only** in this repo (see notes below).
-- **Seed data** lives in `company_brain/seed/`. **The demo path is sacred** — no
+- **Seed data** lives in `canon/seed/`. **The demo path is sacred** — no
   refactors the night before judging.
 - **Run commands:** `python run_demo.py` (offline end-to-end + eval);
-  `python -m company_brain.api` (live UI at http://localhost:8000).
+  `python -m canon.api` (live UI at http://localhost:8000).
 
 ## 8. Status & open TODO
 
@@ -189,5 +189,5 @@ Remaining:
 - The original static prototype (`kimchibrain.html`) is a client-side mock that
   contains real company data, so it is **not committed**. Ask the owner for a
   sanitized synthetic copy before adding any prototype here.
-- Related: `company-brain-tracks.md` (track strategy). An earlier
+- Related: `canon-tracks.md` (track strategy). An earlier
   finance-reconciliation exploration is kept under `archive/maximor-recon/`.

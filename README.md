@@ -1,13 +1,13 @@
-# Company Brain
+# Canon
 
-**The context hub for an organization.** Company Brain reads the places a
+**The context hub for an organization.** Canon reads the places a
 team already talks — Slack, meeting transcripts, Notion, pasted notes, audio —
 extracts the **decisions** buried in the noise, and keeps them in a living,
 queryable **decision graph** with owners, verbatim evidence, and conflict
 detection. Institutional memory that never leaves when people do.
 
 > HackMIT 2026. See `AGENTS.md` for the project outline + build plan, and
-> `company-brain-tracks.md` for the track strategy.
+> `canon-tracks.md` for the track strategy.
 
 ---
 
@@ -17,14 +17,14 @@ The whole system runs on the Python 3.10+ standard library — no install needed
 
 ```bash
 python run_demo.py                 # end-to-end demo + eval numbers (offline)
-python -m company_brain.api        # live app → http://localhost:8000
+python -m canon.api        # live app → http://localhost:8000
 python build_static.py             # regenerate the static docs/ build
 ```
 
 `run_demo.py` ingests the synthetic corpus, prints the decisions, the attention
-queue the brain caught, answers a question with a citation, and reports eval
+queue Canon caught, answers a question with a citation, and reports eval
 numbers. The server hosts the interactive UI: an attention queue, the decision
-graph, click-through evidence, an **"ask the brain"** box, and a **paste-a-source
+graph, click-through evidence, an **"ask Canon"** box, and a **paste-a-source
 → extract** box.
 
 ## The graph
@@ -32,17 +32,17 @@ graph, click-through evidence, an **"ask the brain"** box, and a **paste-a-sourc
 The live app renders a force-directed graph of **1,003 nodes**: **68 real
 decisions** (drawer-openable, with verbatim evidence and relationships — 8 from
 the hand-written corpus + 60 generated) embedded in their **hub regions**, over a
-**935-node synthetic backdrop** that gives the brain the shape of a mature org's
+**935-node synthetic backdrop** that gives Canon the shape of a mature org's
 institutional memory. Colour and layout both carry the hub, so the graph reads as
 named territory rather than a hairball.
 
 The backdrop is presentation only — it is composed in `api.py::_full_graph()`
-and never enters the Brain, so the 68 real decisions are the ones that get
+and never enters Canon, so the 68 real decisions are the ones that get
 searched, scored and surfaced.
 
 ## What it catches
 
-From the 8-source hand-written corpus the brain raises the four attention triggers
+From the 8-source hand-written corpus Canon raises the four attention triggers
 automatically (the generated decisions add more organically):
 
 - **Superseded but unedited** — AWS→GCP and free-tier 100→50 calls; the old
@@ -64,7 +64,7 @@ runs without any of them and lights up as you add them:
 |----------|---------|
 | `OPENAI_API_KEY` | LLM extraction (replaces the offline path) — **OpenAI track** |
 | `DEEPGRAM_API_KEY` | raw-audio ingestion (speech-to-text) — **Deepgram track** |
-| `ELEVENLABS_API_KEY` | the brain answers out loud — **ElevenLabs track** |
+| `ELEVENLABS_API_KEY` | Canon answers out loud — **ElevenLabs track** |
 | `ELASTIC_URL` / `ELASTIC_API_KEY` | Elasticsearch-backed search — **Elastic track** |
 
 Copy `.env.example` and fill in what you have. Token spend is metered per stage
@@ -73,7 +73,7 @@ from the first call (`GET /api/tokens`) for the **Token Company** track.
 ## Measured, not vibes
 
 ```
-python -m company_brain.eval
+python -m canon.eval
 ```
 Scores extraction precision, owner accuracy, supersession recall, conflict
 recall and false edges against the seed corpus's ground-truth labels.
@@ -167,7 +167,7 @@ The current seed spreads as roughly Backend 219 · Social / GTM 199 · Data & ML
 
 ### 5. Answer — `voice.py::answer_query()`
 
-Answers are **retrieved, never invented** — the brain reports what is on the
+Answers are **retrieved, never invented** — Canon reports what is on the
 record and shows the quote it read.
 
 1. `store.py::search()` ranks every decision against the query over its
@@ -182,7 +182,7 @@ record and shows the quote it read.
    without the evidence behind it.
 
 So **"I don't have a decision on record for that" is a real answer.** Ask about
-something the org never decided and the brain says so, instead of citing the
+something the org never decided and Canon says so, instead of citing the
 closest thing it can find — which matters more than usual for a product whose
 whole claim is that you can trust what it tells you.
 
@@ -219,14 +219,14 @@ shipping a stale page.
 ## Structure
 
 ```
-company_brain/
+canon/
   schema.py         the Decision contract (the one shared surface)
   seed/corpus.py    8 synthetic Slack/transcript/notes sources + ground truth
   seed/synthetic.py the 60 generated real decisions
   fake_graph.py     935-node synthetic backdrop (presentation only)
   extract.py        OpenAI extraction + offline path + token metering
   tokens.py         per-stage token ledger
-  store.py          the Brain: ingest, search, graph, attention
+  store.py          the Canon: ingest, search, graph, attention
   graph.py          edge/conflict detection + attention predicates
   hubs.py           hub + subcluster tagging (the graph's named regions)
   rules.json        attention rules as data (severity, message, action)

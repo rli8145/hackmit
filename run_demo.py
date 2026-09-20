@@ -1,10 +1,10 @@
 """
-Company Brain — end-to-end demo (offline, zero deps).
+Canon — end-to-end demo (offline, zero deps).
 
     python run_demo.py
 
 Ingests the synthetic corpus, shows the decision graph and the attention queue
-the brain caught, asks it a question (answered with a citation), and prints the
+Canon caught, asks it a question (answered with a citation), and prints the
 eval numbers + token ledger. This is the narrated version of the live demo.
 """
 
@@ -22,32 +22,32 @@ for _stream in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-from company_brain.eval import run_eval
-from company_brain.tokens import LEDGER
-from company_brain.voice import answer_query
+from canon.eval import run_eval
+from canon.tokens import LEDGER
+from canon.voice import answer_query
 
 SEP = "─" * 58
 
 
 def main():
     mode = "OpenAI API" if os.environ.get("OPENAI_API_KEY") else "fallback (offline, no key)"
-    print(f"\nCompany Brain — extraction mode: {mode}\n{SEP}")
+    print(f"\nCanon — extraction mode: {mode}\n{SEP}")
 
-    res, brain = run_eval()
+    res, canon = run_eval()
 
     print("DECISIONS ON RECORD")
-    for d in brain.decisions:
+    for d in canon.decisions:
         tag = {"live": "●", "needs_review": "⚠", "superseded": "×"}.get(d.status, "·")
         owner = d.owner or "UNOWNED"
         print(f"  {tag} [{d.status:<12}] {owner:<7} {d.statement[:52]}")
 
-    print(f"\n{SEP}\nNEEDS ATTENTION (what the brain caught)")
-    for a in brain.attention():
+    print(f"\n{SEP}\nNEEDS ATTENTION (what Canon caught)")
+    for a in canon.attention():
         print(f"  ⚑ {a['type']:<16} {a['message']}")
 
-    print(f"\n{SEP}\nASK THE BRAIN")
+    print(f"\n{SEP}\nASK CANON")
     for q in ["What is our free tier?", "Where do we host our infrastructure?"]:
-        r = answer_query(brain, q)
+        r = answer_query(canon, q)
         print(f"  Q: {q}")
         print(f"  A: {r['answer']}")
         if r.get("citation"):
@@ -57,7 +57,7 @@ def main():
     print(SEP)
     print(res.render())
     print(f"\n{LEDGER.render()}")
-    print(f"\n{SEP}\nRun the live app:  python -m company_brain.api  →  http://localhost:8000\n")
+    print(f"\n{SEP}\nRun the live app:  python -m canon.api  →  http://localhost:8000\n")
 
 
 if __name__ == "__main__":

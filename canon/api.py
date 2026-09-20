@@ -3,7 +3,7 @@ API server + static UI host.  (Owner: Ryan serves it, Hamid consumes it.)
 
 Standard-library HTTP server so the whole app runs with ZERO install:
 
-    python -m company_brain.api      # then open http://localhost:8000
+    python -m canon.api      # then open http://localhost:8000
 
 Loads the synthetic seed corpus on startup. Endpoints:
     GET  /                      -> the web UI
@@ -12,7 +12,7 @@ Loads the synthetic seed corpus on startup. Endpoints:
     GET  /api/decision?id=...   -> one decision (full record)
     GET  /api/tokens            -> token ledger
     POST /api/extract           -> {text, source_type, link, date} ingest + return
-    POST /api/query             -> {q} ask the brain (text answer + citation)
+    POST /api/query             -> {q} ask Canon (text answer + citation)
     POST /api/voice/ask         -> {q} same, plus base64 audio if ElevenLabs key set
 """
 
@@ -23,31 +23,31 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from company_brain import fake_graph
-from company_brain.hubs import hub_of, subcluster_of
-from company_brain.extract import extract
-from company_brain.seed.corpus import SOURCES
-from company_brain.seed.synthetic import generate_decisions
-from company_brain.store import Brain
-from company_brain.tokens import LEDGER
-from company_brain.voice import answer_query, speak
+from canon import fake_graph
+from canon.hubs import hub_of, subcluster_of
+from canon.extract import extract
+from canon.seed.corpus import SOURCES
+from canon.seed.synthetic import generate_decisions
+from canon.store import Canon
+from canon.tokens import LEDGER
+from canon.voice import answer_query, speak
 
 WEB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "index.html")
-BRAIN = Brain()
+CANON = Canon()
 _FAKE = fake_graph.generate(935)   # display-only backdrop, generated once
 
 
 def _load_seed() -> None:
     # hand-written corpus (7) — full evidence + planted attention traps
     for s in sorted(SOURCES, key=lambda x: x.date):
-        BRAIN.ingest(extract(s.text, s.type, s.link, s.date))
+        CANON.ingest(extract(s.text, s.type, s.link, s.date))
     # generated real decisions (~60) — full records, drawer-openable
-    BRAIN.ingest(generate_decisions(60))
+    CANON.ingest(generate_decisions(60))
 
 
 def _full_graph() -> dict:
     """Real decisions (interactive) embedded in the ~1000-node backdrop."""
-    real = BRAIN.graph()
+    real = CANON.graph()
     for n in real["nodes"]:
         n["real"] = True
     nodes = real["nodes"] + _FAKE["nodes"]
@@ -121,11 +121,11 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/graph":
             self._json(_full_graph())
         elif path == "/api/attention":
-            self._json(BRAIN.attention())
+            self._json(CANON.attention())
         elif path == "/api/decision":
             from urllib.parse import parse_qs, urlparse
             did = parse_qs(urlparse(self.path).query).get("id", [""])[0]
-            d = BRAIN.get(did)
+            d = CANON.get(did)
             self._json(d.to_dict() if d else {"error": "not found"},
                        200 if d else 404)
         elif path == "/api/tokens":
@@ -144,13 +144,13 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/extract":
             new = extract(b.get("text", ""), b.get("source_type", "paste"),
                           b.get("link", "paste://ui"), b.get("date", "2026-03-15"))
-            BRAIN.ingest(new)
+            CANON.ingest(new)
             self._json({"extracted": [d.to_dict() for d in new],
-                        "attention": BRAIN.attention()})
+                        "attention": CANON.attention()})
         elif path == "/api/query":
-            self._json(answer_query(BRAIN, b.get("q", "")))
+            self._json(answer_query(CANON, b.get("q", "")))
         elif path == "/api/voice/ask":
-            res = answer_query(BRAIN, b.get("q", ""))
+            res = answer_query(CANON, b.get("q", ""))
             audio = speak(res["answer"]) if res.get("answer") else None
             if audio:
                 res["audio_b64"] = base64.b64encode(audio).decode()
@@ -162,9 +162,9 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     _load_seed()
     port = int(os.environ.get("PORT", 8000))
-    print(f"Company Brain on http://localhost:{port}  "
-          f"({len(BRAIN.decisions)} decisions, "
-          f"{len(BRAIN.attention())} attention items)")
+    print(f"Canon on http://localhost:{port}  "
+          f"({len(CANON.decisions)} decisions, "
+          f"{len(CANON.attention())} attention items)")
     ThreadingHTTPServer(("", port), Handler).serve_forever()
 
 

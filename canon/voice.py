@@ -3,7 +3,7 @@ Voice layer.  (Owner: shared / cuttable — AGENTS.md §7.)
 
 Two independent halves, each unlocking its own track:
   - transcribe()  Deepgram STT — ingest raw meeting audio into the pipeline
-  - speak()       ElevenLabs TTS — the brain answers out loud
+  - speak()       ElevenLabs TTS — the canon answers out loud
 
 Both are behind API keys; offline they no-op so the rest of the system runs.
 The text answer (`answer_query`) always works — voice is additive.
@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import os
 
-from company_brain.graph import keywords
-from company_brain.store import Brain
+from canon.graph import keywords
+from canon.store import Canon
 
 
 def transcribe(audio_bytes: bytes) -> str | None:
@@ -45,13 +45,13 @@ def speak(text: str) -> bytes | None:
     return b"".join(audio)
 
 
-def answer_query(brain: Brain, query: str) -> dict:
+def answer_query(canon: Canon, query: str) -> dict:
     """Answer a question about the org's decisions, with a citation.
 
     Always available (no key needed). Returns the current (live-preferred)
-    decision plus its verbatim evidence — the brain never answers uncited.
+    decision plus its verbatim evidence — the canon never answers uncited.
     """
-    results = brain.search(query, k=3)
+    results = canon.search(query, k=3)
 
     # A decision only counts as an answer if it actually shares a term with
     # the question. Without this, search()'s live-status boost (+0.12) alone
