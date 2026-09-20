@@ -26,10 +26,18 @@ numbers. The server hosts the interactive UI: an attention queue, the decision
 graph, click-through evidence, an **"ask the brain"** box, and a **paste-a-source
 → extract** box.
 
+## The graph
+
+The live app renders an Obsidian-style force-directed graph of ~1,000 nodes:
+**67 real decisions** (drawer-openable, with verbatim evidence and
+relationships — 7 from the hand-written corpus + ~60 generated) embedded in
+their topic clusters, over a display-only backdrop that makes the brain read
+like a mature org's institutional memory.
+
 ## What it catches
 
-From 7 synthetic sources the brain builds 7 decisions and raises the four
-attention triggers automatically:
+From the hand-written corpus the brain raises the four attention triggers
+automatically (the generated decisions add more organically):
 
 - **Superseded but unedited** — AWS→GCP and free-tier 100→50 calls; the old
   decisions still read as-is → *check they still hold*.

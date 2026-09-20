@@ -26,18 +26,22 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from company_brain import fake_graph
 from company_brain.extract import extract
 from company_brain.seed.corpus import SOURCES
+from company_brain.seed.synthetic import generate_decisions
 from company_brain.store import Brain
 from company_brain.tokens import LEDGER
 from company_brain.voice import answer_query, speak
 
 WEB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "index.html")
 BRAIN = Brain()
-_FAKE = fake_graph.generate(1000)   # display-only backdrop, generated once
+_FAKE = fake_graph.generate(935)   # display-only backdrop, generated once
 
 
 def _load_seed() -> None:
+    # hand-written corpus (7) — full evidence + planted attention traps
     for s in sorted(SOURCES, key=lambda x: x.date):
         BRAIN.ingest(extract(s.text, s.type, s.link, s.date))
+    # generated real decisions (~60) — full records, drawer-openable
+    BRAIN.ingest(generate_decisions(60))
 
 
 def _full_graph() -> dict:
