@@ -4,136 +4,263 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Company Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#e7ecf3; --dim:#8b93a7; --accent:#7aa2ff; --accent2:#b79dff;
-    --glass:rgba(20,22,31,.62); --glass-strong:rgba(28,31,44,.78);
-    --stroke:rgba(255,255,255,.10); --shadow:0 10px 40px rgba(0,0,0,.55);
-    --live:#59c08a; --review:#e0a94a; --superseded:#7a8393;
-    --red:#ef8b8b; --amber:#e0a94a; --violet:#b79dff;
+    /* ground: chromatic deep indigo, not a tinted black */
+    --void:#0e0b1e; --panel:#191634; --panel-hi:#221e42; --well:#0a0818;
+    --rim-hi:#453f7a; --rim-lo:#07061a;
+    --ink:#d8d4f5; --dim:#7b75ab;
+    /* accents carry meaning, never decoration */
+    --cyan:#4fe3ff; --amber:#ffb23d; --magenta:#ff5cc8; --violet:#a98bff; --mint:#5ef2a8;
+    --px:2px; --top:54px;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
   body{
-    color:var(--ink);overflow:hidden;
-    font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
-    background:
-      radial-gradient(70vw 70vw at 50% 45%, #14131c 0%, transparent 62%),
-      radial-gradient(50vw 50vw at 85% 90%, #131019 0%, transparent 60%),
-      #08080c;
+    background:var(--void); color:var(--ink); overflow:hidden;
+    font:18px/1.35 "VT323",ui-monospace,monospace;
+    -webkit-font-smoothing:none; font-smooth:never;
   }
-  canvas{position:fixed;inset:0;display:block}
-  .glass{
-    background:var(--glass);backdrop-filter:blur(30px) saturate(180%);
-    -webkit-backdrop-filter:blur(30px) saturate(180%);
-    border:1px solid var(--stroke);border-radius:22px;box-shadow:var(--shadow);
-  }
-  /* top bar */
-  .topbar{position:fixed;top:18px;left:18px;right:18px;z-index:10;
-    display:flex;align-items:center;gap:16px;padding:12px 18px}
-  .brand{font-weight:680;font-size:17px;letter-spacing:.2px;white-space:nowrap}
-  .brand small{font-weight:500;color:var(--dim);font-size:12px;margin-left:8px}
+  canvas#graph{position:fixed;inset:0;display:block;image-rendering:pixelated}
+  /* CRT scanlines — texture only, no motion */
+  .crt{position:fixed;inset:0;z-index:30;pointer-events:none;
+    background:repeating-linear-gradient(to bottom,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+
+  /* ---- pixel bevels: the structural device of the whole interface ---- */
+  .out{background:var(--panel);
+    box-shadow:inset var(--px) var(--px) 0 var(--rim-hi), inset calc(var(--px)*-1) calc(var(--px)*-1) 0 var(--rim-lo),
+               0 0 0 1px var(--rim-lo)}
+  .in{background:var(--well);
+    box-shadow:inset var(--px) var(--px) 0 var(--rim-lo), inset calc(var(--px)*-1) calc(var(--px)*-1) 0 var(--rim-hi),
+               0 0 0 1px var(--rim-lo)}
+
+  .tt{font-family:"Silkscreen",monospace;font-size:10px;letter-spacing:.5px;line-height:1}
+  .titlebar{display:flex;align-items:center;gap:8px;padding:7px 8px;color:var(--ink);
+    background:var(--panel-hi);border-bottom:1px solid var(--rim-lo)}
+  /* the pinstripe fill that makes a title bar read as a title bar */
+  .titlebar::after{content:"";flex:1;height:7px;
+    background:repeating-linear-gradient(to bottom,var(--rim-hi) 0 1px,transparent 1px 3px)}
+  .titlebar .n{font-family:"Silkscreen",monospace;font-size:10px;color:var(--dim);
+    max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ---- top strip ---- */
+  .top{position:fixed;top:0;left:0;right:0;height:48px;z-index:20;
+    display:flex;align-items:center;gap:10px;padding:0 10px}
+  .ask{display:flex;align-items:center;gap:8px;flex:1;max-width:560px}
+  .top button,.row button{white-space:nowrap}
+  .mark{display:flex;align-items:baseline;gap:9px;white-space:nowrap}
+  .mark b{font-family:"Silkscreen",monospace;font-weight:700;font-size:13px;color:#fff;letter-spacing:.5px}
+  .mark span{font-size:17px;color:var(--dim)}
   .grow{flex:1}
-  .askwrap{display:flex;align-items:center;gap:8px;flex:1;max-width:520px}
-  .askwrap input{flex:1;background:var(--glass-strong);border:1px solid var(--stroke);
-    color:var(--ink);border-radius:14px;padding:10px 14px;font-size:13px;outline:none}
-  .askwrap input::placeholder{color:#98a1b0}
-  button{border:0;border-radius:14px;padding:10px 16px;font-weight:600;cursor:pointer;
-    font-size:13px;color:#fff;background:linear-gradient(120deg,var(--accent),var(--accent2));
-    box-shadow:0 4px 16px rgba(122,162,255,.35)}
-  button.ghost{background:var(--glass-strong);color:var(--ink);border:1px solid var(--stroke);
-    box-shadow:none}
-  .tok{color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
-  /* answer toast */
-  .answer{position:fixed;top:78px;left:50%;transform:translateX(-50%);z-index:11;
-    max-width:640px;width:min(92vw,640px);padding:14px 40px 14px 18px;display:none}
-  .answer .cite{color:var(--dim);font-size:12px;margin-top:6px;font-style:italic}
-  .answer .x{position:absolute;top:10px;right:14px;cursor:pointer;color:var(--dim);font-size:16px}
-  /* attention panel */
-  .panel{position:fixed;top:82px;left:18px;z-index:9;width:320px;max-height:calc(100vh - 350px);
-    display:flex;flex-direction:column;padding:16px}
-  .panel h2{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);
-    margin:0 0 12px}
-  .att-list{overflow-y:auto;display:flex;flex-direction:column;gap:9px}
-  .att{background:var(--glass-strong);border:1px solid var(--stroke);border-radius:14px;
-    padding:11px 13px;cursor:pointer;border-left:4px solid #cbd5e1;transition:.15s}
-  .att:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(60,70,120,.12)}
-  .att.unowned{border-left-color:var(--red)}
-  .att.superseded{border-left-color:var(--amber)}
-  .att.assumption_drift{border-left-color:var(--violet)}
-  .att.overlap{border-left-color:var(--accent)}
-  .att .k{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim)}
-  .att .m{margin-top:3px;font-size:13px}
-  /* legend */
-  .legend{position:fixed;bottom:18px;left:18px;z-index:9;padding:12px 14px;
-    display:flex;flex-direction:column;gap:6px;font-size:12px;max-width:220px}
-  .legend .row{display:flex;align-items:center;gap:8px;color:var(--dim)}
-  .dot{width:10px;height:10px;border-radius:50%}
-  .hint{position:fixed;bottom:18px;right:18px;z-index:9;padding:10px 14px;font-size:12px;
-    color:var(--dim)}
-  /* drawer */
-  #drawer{position:fixed;top:18px;right:18px;bottom:18px;width:400px;z-index:12;
-    padding:22px;overflow-y:auto;transform:translateX(120%);transition:.22s cubic-bezier(.4,0,.2,1)}
-  #drawer.open{transform:translateX(0)}
-  #drawer .x{float:right;cursor:pointer;color:var(--dim);font-size:20px;line-height:1}
-  .badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;
-    letter-spacing:.5px;padding:3px 9px;border-radius:20px}
-  .badge.live{background:rgba(89,192,138,.18);color:#2f9c68}
-  .badge.needs_review{background:rgba(224,169,74,.2);color:#b9832b}
-  .badge.superseded{background:rgba(154,163,176,.22);color:#6b7480}
-  .lbl{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 6px}
-  .ev{background:var(--glass-strong);border:1px solid var(--stroke);border-radius:12px;
-    padding:11px 13px;margin:8px 0;border-left:3px solid var(--accent)}
-  .ev a,a.src{color:#5a7fe0;text-decoration:none;font-size:12px}
-  .meta{color:var(--dim);font-size:12.5px}
-  .unowned-dot{color:var(--red);font-weight:600}
-  /* modal */
-  .scrim{position:fixed;inset:0;background:rgba(40,45,60,.25);backdrop-filter:blur(4px);
-    z-index:20;display:none;align-items:center;justify-content:center}
+  .console{display:flex;align-items:center;gap:0;flex:1;max-width:520px;height:30px;padding:0 0 0 9px}
+  .console .caret{color:var(--cyan);font-size:18px;padding-right:6px;user-select:none}
+  .console input{flex:1;background:transparent;border:0;outline:none;color:var(--ink);
+    font:18px/1 "VT323",monospace;padding:0}
+  .console input::placeholder{color:#544e80}
+  button{font-family:"Silkscreen",monospace;font-size:10px;letter-spacing:.5px;line-height:1;
+    padding:9px 11px;border:0;color:var(--ink);cursor:pointer;background:var(--panel);
+    box-shadow:inset 2px 2px 0 var(--rim-hi), inset -2px -2px 0 var(--rim-lo), 0 0 0 1px var(--rim-lo)}
+  button:active{box-shadow:inset 2px 2px 0 var(--rim-lo), inset -2px -2px 0 var(--rim-hi), 0 0 0 1px var(--rim-lo);
+    transform:translate(1px,1px)}
+  button.key{color:var(--void);background:var(--cyan);
+    box-shadow:inset 2px 2px 0 #b6f4ff, inset -2px -2px 0 #1b7e96, 0 0 0 1px var(--rim-lo)}
+  button.key:active{box-shadow:inset 2px 2px 0 #1b7e96, inset -2px -2px 0 #b6f4ff, 0 0 0 1px var(--rim-lo)}
+  button[aria-pressed="true"]{color:var(--void);background:var(--mint);
+    box-shadow:inset 2px 2px 0 #c2ffe0, inset -2px -2px 0 #1d8659, 0 0 0 1px var(--rim-lo)}
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  /* ---- answer readout ---- */
+  .readout{position:fixed;top:var(--top);left:50%;transform:translateX(-50%);z-index:19;
+    width:min(94vw,620px);display:none}
+  .readout .body{padding:11px 12px 12px}
+  .readout .echo{color:var(--dim);font-size:17px}
+  .readout .echo em{color:var(--cyan);font-style:normal}
+  .readout .ans{margin-top:5px;color:var(--ink)}
+  .readout .cite{margin-top:9px;padding:7px 9px;color:var(--mint);font-size:17px;
+    border-left:3px solid var(--mint);background:rgba(94,242,168,.07)}
+  .cur{display:inline-block;width:8px;height:15px;background:var(--cyan);
+    vertical-align:-2px;margin-left:2px}
+
+  /* ---- left rail ---- */
+  .rail{position:fixed;top:var(--top);bottom:32px;left:10px;width:302px;z-index:18;
+    display:flex;flex-direction:column}
+  .rail .scroll{overflow-y:auto;flex:1;padding:8px}
+  .att{display:block;width:100%;text-align:left;padding:8px 9px 9px;margin-bottom:6px;
+    background:var(--panel-hi);border-left:4px solid var(--dim);cursor:pointer;
+    box-shadow:inset -1px -1px 0 var(--rim-lo), inset 1px 0 0 var(--rim-hi);
+    font-family:"VT323",monospace;font-size:18px;color:var(--ink);
+    white-space:normal;overflow-wrap:anywhere}
+  .att:hover,.att:focus-visible{background:#2a2552}
+  .att[aria-current="true"]{background:#2f2a5c;box-shadow:inset -1px -1px 0 var(--rim-lo), inset 1px 0 0 var(--rim-hi), 0 0 0 1px var(--cyan)}
+  .att:active{transform:translate(1px,1px)}
+  .att .h{font-family:"Silkscreen",monospace;font-size:9px;line-height:1.3;color:var(--dim);
+    display:block;margin-bottom:4px}
+  .att .m{display:block;line-height:1.25}
+  .att .do{display:block;margin-top:5px;font-size:16px}
+  .att.unowned{border-left-color:var(--magenta)} .att.unowned .do{color:var(--magenta)}
+  .att.superseded{border-left-color:var(--amber)} .att.superseded .do{color:var(--amber)}
+  .att.assumption_drift{border-left-color:var(--violet)} .att.assumption_drift .do{color:var(--violet)}
+  .att.overlap{border-left-color:var(--cyan)} .att.overlap .do{color:var(--cyan)}
+  .keys{padding:8px 9px 9px;border-top:1px solid var(--rim-lo);background:var(--panel)}
+  .keys .grp{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:6px}
+  .keys .grp:last-child{margin-bottom:0}
+  .keys .k{display:flex;align-items:center;gap:6px;font-size:16px;color:var(--dim);line-height:1}
+  .sw{width:8px;height:8px;flex:none}
+  .ln{width:14px;height:0;border-top:2px solid}
+  .empty{color:var(--dim);padding:10px 4px}
+
+  /* ---- drawer ---- */
+  .drawer{position:fixed;top:var(--top);right:10px;bottom:32px;width:400px;z-index:21;
+    display:flex;flex-direction:column;transform:translateX(calc(100% + 14px));
+    transition:transform .16s steps(6,end);visibility:hidden}
+  .drawer.open{transform:translateX(0);visibility:visible}
+  .drawer .scroll{overflow-y:auto;padding:12px 13px 16px}
+  .stat{font-family:"Silkscreen",monospace;font-size:9px;padding:4px 7px;color:var(--void);display:inline-block}
+  .stat.live{background:var(--cyan)} .stat.needs_review{background:var(--amber)}
+  .stat.superseded{background:var(--dim)}
+  .drawer h2{font-size:22px;line-height:1.15;margin:10px 0 7px;font-weight:400;color:#fff}
+  .fields{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:17px;margin-top:8px}
+  .fields dt{font-family:"Silkscreen",monospace;font-size:9px;color:var(--dim);padding-top:5px}
+  .fields dd{margin:0;color:var(--ink);word-break:break-word}
+  .nobody{color:var(--magenta)}
+  a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted currentColor}
+  a:hover{background:rgba(79,227,255,.12)}
+  .sect{font-family:"Silkscreen",monospace;font-size:9px;color:var(--dim);margin:16px 0 7px;
+    padding-bottom:5px;border-bottom:1px solid var(--rim-lo)}
+  .quote{padding:8px 10px;margin-bottom:7px;background:var(--well);border-left:3px solid var(--mint);
+    box-shadow:inset -1px -1px 0 var(--rim-hi)}
+  .quote p{margin:0 0 6px;color:var(--ink)}
+  .rel{display:flex;gap:8px;align-items:baseline;margin-bottom:5px;font-size:17px}
+  .rel .t{font-family:"Silkscreen",monospace;font-size:9px;flex:none;width:76px}
+  .rel.supersedes .t{color:var(--amber)} .rel.conflicts .t{color:var(--magenta)}
+  .rel.depends_on .t{color:var(--dim)}
+  .rel button{background:none;box-shadow:none;padding:0;font-family:"VT323",monospace;font-size:17px;
+    color:var(--ink);text-align:left;border-bottom:1px dotted var(--rim-hi)}
+  .rel button:hover{color:var(--cyan)}
+  .assume{display:flex;gap:9px;margin-bottom:6px;font-size:17px;line-height:1.25}
+  .assume::before{content:"";width:7px;height:7px;flex:none;margin-top:6px;background:var(--violet)}
+
+  /* ---- status bar ---- */
+  .status{position:fixed;left:0;right:0;bottom:0;height:26px;z-index:22;display:flex;
+    align-items:stretch;background:var(--panel);border-top:1px solid var(--rim-hi)}
+  .cell{display:flex;align-items:center;gap:6px;padding:0 10px;font-size:16px;color:var(--dim);
+    border-right:1px solid var(--rim-lo);box-shadow:1px 0 0 var(--rim-hi);white-space:nowrap}
+  .cell b{font-family:"Silkscreen",monospace;font-size:9px;font-weight:400;color:#5f598f}
+  .cell var{font-style:normal;color:var(--ink);font-variant-numeric:tabular-nums}
+  .cell.read{flex:1;border-right:0;box-shadow:none;color:var(--cyan);overflow:hidden;
+    text-overflow:ellipsis;display:block;line-height:26px}
+  .cell.read.idle{color:var(--dim)}
+
+  /* ---- dialog ---- */
+  .scrim{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+    background:rgba(8,6,20,.72)}
   .scrim.open{display:flex}
-  .modal{width:min(92vw,560px);padding:22px}
-  .modal textarea{width:100%;height:120px;background:var(--glass-strong);color:var(--ink);
-    border:1px solid var(--stroke);border-radius:14px;padding:12px;font-size:13px;resize:vertical;outline:none}
-  .modal h2{margin:0 0 12px;font-size:16px}
+  .dlg{width:min(94vw,560px)}
+  .dlg .body{padding:12px}
+  .dlg p{margin:0 0 9px;color:var(--dim);font-size:17px;max-width:62ch}
+  .dlg textarea{width:100%;height:132px;background:transparent;border:0;outline:none;resize:vertical;
+    color:var(--ink);font:18px/1.3 "VT323",monospace;padding:9px 10px;display:block}
+  .row{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;align-items:center}
+  .note{flex:1;font-size:17px;color:var(--amber);line-height:1.2;display:none}
+  .note.on{display:block}
+  .xb{margin-left:auto;background:none;box-shadow:none;padding:2px 4px;color:var(--dim);font-size:11px}
+  .xb:hover{color:var(--magenta)}
+  .titlebar .xb{order:3}
+  .titlebar::after{order:2}
+
+  .railtoggle{display:none}
+  @media (max-width:980px){
+    .rail{width:270px}
+    .drawer{width:340px}
+  }
+  @media (max-width:760px){
+    :root{--top:96px}
+    .mark span{display:none}
+    .top{height:auto;flex-wrap:wrap;padding:8px 8px 0;gap:8px}
+    .grow{display:none}
+    .ask{order:3;flex-basis:100%;max-width:none;margin-bottom:8px}
+    .railtoggle{display:block}
+    .rail{left:0;right:0;width:auto;bottom:26px;top:auto;max-height:50vh;
+      transform:translateY(calc(100% + 8px));transition:transform .16s steps(6,end)}
+    .rail.open{transform:translateY(0)}
+    .drawer{left:0;right:0;width:auto;bottom:26px}
+    .console{max-width:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .drawer,.rail{transition:none}
+    .cur{display:none}
+  }
 </style>
 </head>
 <body>
-<canvas id="graph"></canvas>
+<canvas id="graph" aria-label="Decision graph"></canvas>
 
-<div class="topbar glass">
-  <div class="brand">Company Brain<small>your org's context hub</small></div>
-  <div class="grow"></div>
-  <div class="askwrap">
-    <input id="q" placeholder="Ask the brain…  e.g. what's our free tier?"
-           onkeydown="if(event.key==='Enter')ask()">
-    <button onclick="ask()">Ask</button>
+<!-- top strip -->
+<div class="top">
+  <div class="mark out" style="padding:9px 11px"><b>COMPANY&nbsp;BRAIN</b><span>decision layer</span></div>
+  <div class="ask">
+    <div class="console in">
+      <span class="caret">&gt;</span>
+      <input id="q" aria-label="Ask the brain" placeholder="ask the brain — what's our free tier?"
+             onkeydown="if(event.key==='Enter')ask()">
+    </div>
+    <button class="key" onclick="ask()">ASK</button>
+    <button id="spk" aria-pressed="false" title="Speak answers aloud" onclick="toggleSpeak()">SPEAK</button>
   </div>
-  <button class="ghost" onclick="openModal()">＋ Source</button>
-  <span class="tok" id="tok"></span>
+  <div class="grow"></div>
+  <button class="railtoggle" onclick="document.querySelector('.rail').classList.toggle('open')">QUEUE</button>
+  <button onclick="openDialog()">+ SOURCE</button>
 </div>
 
-<div class="answer glass" id="answer"></div>
-
-<div class="panel glass">
-  <h2>Needs attention · <span id="attn-count">0</span></h2>
-  <div class="att-list" id="attention"></div>
+<!-- answer readout -->
+<div class="readout out" id="readout" role="status" aria-live="polite">
+  <div class="titlebar"><span class="tt">ANSWER</span><button class="xb" onclick="hideAnswer()" aria-label="Close answer">✕</button></div>
+  <div class="body" id="readout-body"></div>
 </div>
 
-<div class="legend glass" id="legend"></div>
-<div class="hint glass">scroll to zoom · drag to pan · hover a node · ○ ringed = real decision</div>
+<!-- left rail -->
+<aside class="rail out">
+  <div class="titlebar"><span class="tt">NEEDS ATTENTION</span><span class="n" id="attn-count">0</span></div>
+  <div class="scroll" id="attention"></div>
+  <div class="keys" id="keys"></div>
+</aside>
 
-<div id="drawer" class="glass"></div>
+<!-- detail drawer -->
+<section class="drawer out" id="drawer" aria-label="Decision detail" aria-hidden="true">
+  <div class="titlebar"><span class="tt">DECISION</span><span class="n" id="drawer-id"></span>
+    <button class="xb" onclick="closeDrawer()" aria-label="Close decision">✕</button></div>
+  <div class="scroll" id="drawer-body"></div>
+</section>
 
-<div class="scrim" id="scrim" onclick="if(event.target===this)closeModal()">
-  <div class="modal glass">
-    <h2>Add a source</h2>
-    <textarea id="src" placeholder="Paste a Slack thread, meeting transcript, or notes… the brain extracts the decision, drops it into the graph, and flags conflicts."></textarea>
-    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
-      <button class="ghost" onclick="closeModal()">Cancel</button>
-      <button onclick="ingest()">Extract decision</button>
+<!-- status bar -->
+<div class="status">
+  <div class="cell"><b>DECISIONS</b><var id="s-real">0</var></div>
+  <div class="cell"><b>NODES</b><var id="s-nodes">0</var></div>
+  <div class="cell"><b>ZOOM</b><var id="s-zoom">55%</var></div>
+  <div class="cell"><b>TOKENS</b><var id="s-tok">0</var></div>
+  <div class="cell read idle" id="s-read">scroll to zoom · drag to pan · press / to ask</div>
+</div>
+
+<!-- add source dialog -->
+<div class="scrim" id="scrim" onclick="if(event.target===this)closeDialog()">
+  <div class="dlg out" role="dialog" aria-modal="true" aria-label="Add a source">
+    <div class="titlebar"><span class="tt">ADD A SOURCE</span><button class="xb" onclick="closeDialog()" aria-label="Close">✕</button></div>
+    <div class="body">
+      <p>Paste a Slack thread, a meeting transcript, or raw notes. The brain pulls out the decision, drops it into the graph, and flags anything it contradicts.</p>
+      <div class="in"><textarea id="src" aria-label="Source text"></textarea></div>
+      <div class="row">
+        <p class="note" id="note" role="alert"></p>
+        <button onclick="closeDialog()">CANCEL</button>
+        <button class="key" onclick="ingest()">EXTRACT DECISION</button>
+      </div>
     </div>
   </div>
 </div>
+
+<div class="crt"></div>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -220,13 +347,11 @@ function clientExtract(text){
   return {extracted:[dec],attention:items};
 }
 const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ---------- hubs (primary) + topic fallback colors ---------- */
-const HUB_COLORS={'Backend':'#7aa2ff','Frontend':'#59c08a','Data & ML':'#b79dff',
-  'Security':'#ef8b8b','Finance':'#e0a94a','Social / GTM':'#f19cd0',
-  'People/Product':'#5ec8d8','General':'#9aa3b0'};
-const PALETTE = ['#7aa2ff','#b79dff','#59c08a','#e0a94a','#ef8b8b','#5ec8d8',
-  '#f19cd0','#8fd18a','#c3a3f0','#f5b880','#7fb2f0','#e78fa8','#9ad0b0','#d0b36e'];
+/* ---------- bitmap topic palette ---------- */
+const PALETTE = ['#4fe3ff','#a98bff','#5ef2a8','#ffb23d','#ff6b8a','#ff5cc8','#f3e14a',
+  '#6fa8ff','#ff8f4a','#4ad6c4','#c8a2ff','#9cff4a','#ff7ab0','#7de08f'];
 const topicColor = {};
 function colorFor(topic){
   if(!(topic in topicColor)){
@@ -235,19 +360,36 @@ function colorFor(topic){
   }
   return topicColor[topic];
 }
+/* Hubs are the graph's regions (company_brain/hubs.py tags every node with
+   hub + subcluster). Colour carries the hub; position carries it too, via the
+   centroid forces in tick(). Amber and magenta are deliberately NOT used here
+   — those two mean "supersedes" and "conflicts" on the edges, and a colour
+   should mean one thing. */
+const HUB_COLORS={'Backend':'#4fe3ff','Frontend':'#5ef2a8','Data & ML':'#a98bff',
+  'Security':'#ff6b8a','Finance':'#f3e14a','Social / GTM':'#ff7ab0',
+  'People/Product':'#6fa8ff','General':'#7b75ab'};
 function nodeColor(n){ return HUB_COLORS[n.hub] || colorFor(n.topic||''); }
 
-/* ---------- canvas force graph ---------- */
+// [backdrop, touches-a-real-decision] — the real graph reads on top of dim texture
+const EDGE={depends_on:['rgba(110,102,168,.085)','rgba(140,132,205,.34)'],
+            supersedes:['rgba(255,178,61,.075)','rgba(255,178,61,.42)'],
+            conflicts:['rgba(255,92,200,.10)','rgba(255,92,200,.55)']};
+
+/* ---------- graph state ---------- */
 const cv=$('#graph'), ctx=cv.getContext('2d');
-let DPR=Math.min(2,window.devicePixelRatio||1), W=0,H=0;
-let nodes=[], edges=[], idMap={}, view={x:0,y:0,scale:.6}, alpha=1;
-let hover=-1, neigh=new Set(), vtarget=null, hubAnchors={}, subAnchors={};
+let DPR=Math.min(2,devicePixelRatio||1), W=0,H=0;
+let nodes=[], edges=[], idMap={}, view={x:0,y:0,scale:.55}, alpha=1;
+let hover=-1, pinned=-1, neigh=new Set(), vtarget=null;
+let SX=new Float64Array(0), SY=new Float64Array(0);
 const _zp=parseFloat(new URLSearchParams(location.search).get('zoom'));
 if(_zp) view.scale=Math.max(.12,Math.min(4,_zp));
 
 function resize(){ W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR;
-  cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0); }
+  cv.style.width=W+'px'; cv.style.height=H+'px'; ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled=false; }
 addEventListener('resize',resize); resize();
+
+const groupKey = n => (n.hub||'General')+'|'+(n.subcluster||'');
 
 function initGraph(g){
   // preserve positions across refreshes so an ingest doesn't relayout the world
@@ -255,132 +397,220 @@ function initGraph(g){
   const firstLoad = nodes.length===0;
   idMap={};
   nodes=g.nodes.map((n,i)=>{ idMap[n.id]=i; const p=prev[n.id];
-    return {...n, x:p?p.x:(Math.random()-.5)*1500, y:p?p.y:(Math.random()-.5)*1500,
+    return {...n, x:p?p.x:(Math.random()-.5)*1600, y:p?p.y:(Math.random()-.5)*1600,
             vx:p?p.vx:0, vy:p?p.vy:0, deg:0, _new:!p}; });
   edges=g.edges.filter(e=>idMap[e.source]!=null&&idMap[e.target]!=null)
-    .map(e=>({s:idMap[e.source],t:idMap[e.target]}));
+    .map(e=>({s:idMap[e.source],t:idMap[e.target],k:e.type||'depends_on'}));
   edges.forEach(e=>{nodes[e.s].deg++;nodes[e.t].deg++;});
-  nodes.forEach(n=> n.r=(n.real?10:2.6)+Math.min(10,n.deg*0.7));
-  // organic community layout — NO fixed ring. Nodes cluster by hub/subcluster
-  // via dynamic-centroid attraction in tick(); hubs push apart via centroid
-  // repulsion; cross-edges hold it in one connected mass (Obsidian-style).
-  // New nodes spawn near their group's current centroid.
-  const scen={},scnt={};
-  for(const n of nodes){ if(n._new)continue; const k=(n.hub||'')+'|'+(n.subcluster||'');
-    const c=scen[k]||(scen[k]={x:0,y:0}); c.x+=n.x;c.y+=n.y; scnt[k]=(scnt[k]||0)+1; }
-  nodes.forEach(n=>{ if(n._new){ const k=(n.hub||'')+'|'+(n.subcluster||''), c=scen[k];
-    if(c&&scnt[k]){ n.x=c.x/scnt[k]+(Math.random()-.5)*80; n.y=c.y/scnt[k]+(Math.random()-.5)*80; } } });
-  alpha = firstLoad ? 1 : 0.35;
+  // node size in screen pixels, snapped to even numbers so squares stay crisp
+  // real decisions grow with connectedness; backdrop nodes stay uniform texture
+  nodes.forEach(n=>{ n.px = n.real ? 2*Math.round((8+Math.min(6,n.deg*.4))/2) : (n.deg>8?4:3); });
+  // drop new nodes next to a linked, already-placed neighbour (not the void)
+  for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
+    if(a._new&&!b._new){a.x=b.x+(Math.random()-.5)*70;a.y=b.y+(Math.random()-.5)*70;a._new=false;}
+    else if(b._new&&!a._new){b.x=a.x+(Math.random()-.5)*70;b.y=a.y+(Math.random()-.5)*70;b._new=false;} }
+  // anything still unplaced (no edge to an existing node) goes to its group's
+  // current centroid, so an ingested decision appears inside its own region
+  const gc={},gn={};
+  for(const n of nodes){ if(n._new)continue; const k=groupKey(n);
+    const c=gc[k]||(gc[k]={x:0,y:0}); c.x+=n.x; c.y+=n.y; gn[k]=(gn[k]||0)+1; }
+  for(const n of nodes){ if(!n._new)continue; const c=gc[groupKey(n)], k=groupKey(n);
+    if(c&&gn[k]){ n.x=c.x/gn[k]+(Math.random()-.5)*80; n.y=c.y/gn[k]+(Math.random()-.5)*80; } }
+  SX=new Float64Array(nodes.length); SY=new Float64Array(nodes.length);
+  alpha = firstLoad ? 1 : 0.3;   // gentle reheat on ingest, full settle on first load
+  if(firstLoad) settle();        // ...and the cold settle happens before anything is painted
+}
+
+// The simulation is how the graph FINDS its shape — it isn't something worth
+// watching. Cold, a thousand nodes fly in from random positions for several
+// seconds, which reads as chaos rather than as structure. So on first load we
+// run it to rest headlessly and paint the finished layout. The reheat after an
+// ingest IS worth watching (you see the new decision arrive and pull into its
+// region), so that one stays animated.
+function settle(maxSteps=400){
+  const t0=performance.now();
+  while(alpha>=0.02 && maxSteps-- > 0){
+    tick();
+    if(performance.now()-t0 > 1200) break;   // budget: never hang the boot
+  }
+  // Reached rest: freeze it, so the opening frame is final. Ran out of budget
+  // on a slower machine: leave a little energy in it and let the visible loop
+  // finish the job — a graph still arranging itself beats one frozen halfway.
+  if(alpha<0.02) alpha=0;
 }
 
 function tick(){
   if(alpha<0.02) return;
-  // dynamic group centroids (organic community clustering)
+  // live group centroids — recomputed each frame, so clusters form organically
+  // rather than being pinned to a fixed ring
   const hcen={},hcnt={},scen={},scnt={};
-  for(const n of nodes){ const h=n.hub||'G';
-    let c=hcen[h]||(hcen[h]={x:0,y:0}); c.x+=n.x;c.y+=n.y; hcnt[h]=(hcnt[h]||0)+1;
-    const s=(n.hub||'')+'|'+(n.subcluster||'');
-    let d=scen[s]||(scen[s]={x:0,y:0}); d.x+=n.x;d.y+=n.y; scnt[s]=(scnt[s]||0)+1; }
+  for(const n of nodes){
+    const h=n.hub||'General';
+    const c=hcen[h]||(hcen[h]={x:0,y:0}); c.x+=n.x; c.y+=n.y; hcnt[h]=(hcnt[h]||0)+1;
+    const k=groupKey(n);
+    const d=scen[k]||(scen[k]={x:0,y:0}); d.x+=n.x; d.y+=n.y; scnt[k]=(scnt[k]||0)+1; }
   for(const k in hcen){ hcen[k].x/=hcnt[k]; hcen[k].y/=hcnt[k]; }
   for(const k in scen){ scen[k].x/=scnt[k]; scen[k].y/=scnt[k]; }
-  // node repulsion (local, via grid) — stops overlap, keeps blobs packed
-  const cell=60, grid=new Map();
-  const key=(x,y)=>((x/cell|0)+'_'+(y/cell|0));
-  for(let i=0;i<nodes.length;i++){ const k=key(nodes[i].x,nodes[i].y);
+
+  const cell=60, grid=new Map();   // tuned with the forces below — see note in draw()
+  for(let i=0;i<nodes.length;i++){ const k=(nodes[i].x/cell|0)+'_'+(nodes[i].y/cell|0);
     let b=grid.get(k); if(!b){b=[];grid.set(k,b);} b.push(i); }
   for(const n of nodes){
     const cx=n.x/cell|0, cy=n.y/cell|0;
     for(let gx=cx-1;gx<=cx+1;gx++)for(let gy=cy-1;gy<=cy+1;gy++){
       const b=grid.get(gx+'_'+gy); if(!b)continue;
       for(const j of b){ const m=nodes[j]; if(m===n)continue;
-        let dx=n.x-m.x, dy=n.y-m.y, d2=dx*dx+dy*dy+.01;
+        const dx=n.x-m.x, dy=n.y-m.y, d2=dx*dx+dy*dy+.01;
         if(d2<cell*cell*4){ const f=270*alpha/d2; n.vx+=dx*f; n.vy+=dy*f; } } }
   }
-  // links pull connected nodes together → dense webby blobs
   for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
-    let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, f=(d-30)*0.02*alpha/d;
+    const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, f=(d-30)*0.02*alpha/d;
     a.vx+=dx*f; a.vy+=dy*f; b.vx-=dx*f; b.vy-=dy*f; }
-  // clustering + hub separation + integrate
   for(const n of nodes){
-    const s=scen[(n.hub||'')+'|'+(n.subcluster||'')];
-    if(s){ n.vx+=(s.x-n.x)*0.14*alpha; n.vy+=(s.y-n.y)*0.14*alpha; }   // tight sub-blob
-    const h=hcen[n.hub||'G'];
-    if(h){ n.vx+=(h.x-n.x)*0.02*alpha; n.vy+=(h.y-n.y)*0.02*alpha; }   // hub cohesion
-    // push away from OTHER hubs' centroids → distinct but touching regions
-    for(const k in hcen){ if(k===(n.hub||'G'))continue; const c=hcen[k];
-      let dx=n.x-c.x, dy=n.y-c.y, d2=dx*dx+dy*dy+1;
+    const s=scen[groupKey(n)];
+    if(s){ n.vx+=(s.x-n.x)*0.14*alpha; n.vy+=(s.y-n.y)*0.14*alpha; }      // tight sub-blob
+    const h=hcen[n.hub||'General'];
+    if(h){ n.vx+=(h.x-n.x)*0.02*alpha; n.vy+=(h.y-n.y)*0.02*alpha; }      // hub cohesion
+    for(const k in hcen){                                                 // hubs push apart
+      if(k===(n.hub||'General')) continue;
+      const c=hcen[k], dx=n.x-c.x, dy=n.y-c.y, d2=dx*dx+dy*dy+1;
       if(d2<520*520){ const f=52000*alpha/d2; n.vx+=dx*f; n.vy+=dy*f; } }
-    n.vx-=n.x*0.02*alpha; n.vy-=n.y*0.02*alpha;                        // centering → compact mass
+    n.vx-=n.x*0.02*alpha; n.vy-=n.y*0.02*alpha;                           // keep it one mass
     n.x+=n.vx*=.84; n.y+=n.vy*=.84; }
   alpha*=0.987;
 }
 
+/* draw the CAD grid the graph floats on — it also shows pan and zoom */
+function drawGrid(){
+  const cx=W/2+view.x, cy=H/2+view.y;
+  let step=32*view.scale; while(step<9) step*=4;          // keep it from moiréing
+  const major=step*5;
+  const lines=(sp,color)=>{
+    ctx.strokeStyle=color; ctx.lineWidth=1; ctx.beginPath();
+    for(let x=cx%sp; x<W; x+=sp){ const p=Math.round(x)+.5; ctx.moveTo(p,0); ctx.lineTo(p,H); }
+    for(let y=cy%sp; y<H; y+=sp){ const p=Math.round(y)+.5; ctx.moveTo(0,p); ctx.lineTo(W,p); }
+    ctx.stroke();
+  };
+  lines(step,'rgba(90,82,150,.10)');
+  lines(major,'rgba(90,82,150,.20)');
+}
+
 function draw(){
-  ctx.clearRect(0,0,W,H);
-  ctx.save();
-  ctx.translate(W/2+view.x, H/2+view.y); ctx.scale(view.scale,view.scale);
-  // hub + subcluster labels at their centroids (behind the nodes)
+  ctx.fillStyle='#0e0b1e'; ctx.fillRect(0,0,W,H);
+  drawGrid();
+  const cx=W/2+view.x, cy=H/2+view.y, s=view.scale;
+  for(let i=0;i<nodes.length;i++){ SX[i]=cx+nodes[i].x*s; SY[i]=cy+nodes[i].y*s; }
+  const focus = pinned>=0?pinned:hover;
+
+  // region labels, behind everything: the hub as a faint watermark, the
+  // subcluster names smaller. They sit at live centroids, so they track the
+  // clusters as the layout settles.
   const hc={},hn={},sc={},sn={};
   for(const n of nodes){
-    if(n.hub){ const c=hc[n.hub]||(hc[n.hub]={x:0,y:0}); c.x+=n.x;c.y+=n.y; hn[n.hub]=(hn[n.hub]||0)+1; }
-    if(n.subcluster){ const k=(n.hub||'')+'|'+n.subcluster;
-      const c=sc[k]||(sc[k]={x:0,y:0,h:n.hub,s:n.subcluster}); c.x+=n.x;c.y+=n.y; sn[k]=(sn[k]||0)+1; } }
-  ctx.textAlign='center';
-  // hub watermark (big, faint)
-  ctx.font=`800 ${38/view.scale}px -apple-system,sans-serif`;
-  for(const h in hc){ const x=hc[h].x/hn[h], y=hc[h].y/hn[h];
-    ctx.globalAlpha=0.20; ctx.fillStyle=HUB_COLORS[h]||'#888';
-    ctx.fillText(h.toUpperCase(), x, y); }
-  // subcluster labels (small, clearer) — the sub-blob names
-  ctx.font=`600 ${12/view.scale}px -apple-system,sans-serif`;
-  for(const k in sc){ if(sn[k]<3) continue; const c=sc[k], x=c.x/sn[k], y=c.y/sn[k];
-    ctx.globalAlpha=0.55; ctx.fillStyle=HUB_COLORS[c.h]||'#888';
-    ctx.fillText(c.s, x, y - 4/view.scale); }
-  ctx.globalAlpha=1;
-  // edges
-  ctx.lineWidth=Math.max(.3,0.6/view.scale);
-  ctx.strokeStyle='rgba(170,72,72,.16)'; ctx.beginPath();
-  for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
-    ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); }
-  ctx.stroke();
-  // highlighted neighbor edges
-  if(hover>=0){ ctx.lineWidth=Math.max(.8,1.4/view.scale);
-    ctx.strokeStyle='rgba(255,120,110,.6)'; ctx.beginPath();
-    for(const e of edges){ if(e.s===hover||e.t===hover){
-      const a=nodes[e.s], b=nodes[e.t]; ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); } }
+    const h=n.hub||'General';
+    const a=hc[h]||(hc[h]={x:0,y:0}); a.x+=n.x; a.y+=n.y; hn[h]=(hn[h]||0)+1;
+    if(n.subcluster){ const k=h+'|'+n.subcluster;
+      const b=sc[k]||(sc[k]={x:0,y:0,h:h,s:n.subcluster}); b.x+=n.x; b.y+=n.y;
+      sn[k]=(sn[k]||0)+1; } }
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='34px "VT323",monospace';        // constant on screen: readable at any zoom
+  for(const h in hc){
+    if(hn[h]<4) continue;
+    ctx.globalAlpha=0.22; ctx.fillStyle=HUB_COLORS[h]||'#7b75ab';
+    ctx.fillText(h.toUpperCase(), cx+(hc[h].x/hn[h])*s, cy+(hc[h].y/hn[h])*s); }
+  ctx.font='15px "VT323",monospace';
+  for(const k in sc){
+    if(sn[k]<3) continue;
+    const c=sc[k];
+    ctx.globalAlpha=0.5; ctx.fillStyle=HUB_COLORS[c.h]||'#7b75ab';
+    ctx.fillText(c.s, cx+(c.x/sn[k])*s, cy+(c.y/sn[k])*s - 10); }
+  ctx.globalAlpha=1; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+
+  // edges, batched by relation type (colour = meaning) and by prominence
+  for(let live=0; live<2; live++) for(const k in EDGE){
+    ctx.strokeStyle=EDGE[k][live]; ctx.lineWidth=1; ctx.beginPath();
+    for(const e of edges){ if(e.k!==k) continue;
+      const real=nodes[e.s].real||nodes[e.t].real;
+      if((real?1:0)!==live) continue;
+      const ax=SX[e.s],ay=SY[e.s],bx=SX[e.t],by=SY[e.t];
+      if((ax<0&&bx<0)||(ax>W&&bx>W)||(ay<0&&by<0)||(ay>H&&by>H)) continue;
+      ctx.moveTo(ax|0,ay|0); ctx.lineTo(bx|0,by|0); }
+    ctx.stroke();
+  }
+  if(focus>=0){ ctx.strokeStyle='rgba(79,227,255,.7)'; ctx.lineWidth=2; ctx.beginPath();
+    for(const e of edges){ if(e.s!==focus&&e.t!==focus) continue;
+      ctx.moveTo(SX[e.s]|0,SY[e.s]|0); ctx.lineTo(SX[e.t]|0,SY[e.t]|0); }
     ctx.stroke(); }
-  // nodes
-  for(let i=0;i<nodes.length;i++){ const n=nodes[i];
-    const dim = hover>=0 && i!==hover && !neigh.has(i);
-    ctx.globalAlpha = (n.status==='superseded'?0.4:1) * (dim?0.25:1);
-    ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,6.2832);
-    ctx.fillStyle=nodeColor(n); ctx.fill();
-    if(n.real){ ctx.lineWidth=2.4/view.scale; ctx.strokeStyle='#fff'; ctx.stroke();
-      ctx.lineWidth=1.2/view.scale; ctx.strokeStyle='rgba(90,110,200,.9)'; ctx.stroke(); }
+
+  // nodes — pixel-snapped squares. solid = live, hollow = superseded.
+  for(let i=0;i<nodes.length;i++){
+    const n=nodes[i], x=SX[i], y=SY[i];
+    if(x<-40||x>W+40||y<-40||y>H+40) continue;
+    const dim = focus>=0 && i!==focus && !neigh.has(i);
+    const c=nodeColor(n);
+    let sz=n.px; if(n.real) sz=2*Math.round(Math.max(6,Math.min(16,sz*(0.7+s*0.5)))/2);
+    const px=Math.round(x-sz/2), py=Math.round(y-sz/2);
+    ctx.globalAlpha=(n.real?1:.30)*(dim?.2:1)*(n.status==='superseded'?.55:1);
+    if(n.real){ // chunky two-step halo instead of a blurry glow
+      ctx.fillStyle=c; ctx.globalAlpha*=.16;
+      ctx.fillRect(px-4,py-4,sz+8,sz+8);
+      ctx.globalAlpha/=.16; ctx.globalAlpha*=.3;
+      ctx.fillRect(px-2,py-2,sz+4,sz+4);
+      ctx.globalAlpha/=.3;
+    }
+    if(n.status==='superseded'){
+      ctx.strokeStyle=c; ctx.lineWidth=2; ctx.strokeRect(px+1,py+1,sz-2,sz-2);
+    } else {
+      ctx.fillStyle=c; ctx.fillRect(px,py,sz,sz);
+      if(n.real&&n.status==='needs_review'){ ctx.fillStyle='#0e0b1e'; ctx.fillRect(px+2,py+2,sz-4,sz-4);
+        ctx.fillStyle=c; ctx.fillRect(px+4,py+4,sz-8,sz-8); }
+    }
+    ctx.globalAlpha=1;
+  }
+
+  // reticle on the focused node
+  if(focus>=0){
+    const n=nodes[focus], sz=Math.max(14,(n.real?18:12)), a=5;
+    const x=Math.round(SX[focus]-sz/2), y=Math.round(SY[focus]-sz/2);
+    ctx.strokeStyle='#4fe3ff'; ctx.lineWidth=2; ctx.beginPath();
+    const corner=(cx2,cy2,dx,dy)=>{ ctx.moveTo(cx2+dx*a,cy2); ctx.lineTo(cx2,cy2); ctx.lineTo(cx2,cy2+dy*a); };
+    corner(x,y,1,1); corner(x+sz,y,-1,1); corner(x,y+sz,1,-1); corner(x+sz,y+sz,-1,-1);
+    ctx.stroke();
+  }
+
+  // labels on plates, highest-priority first; a label that would collide is dropped
+  const LABEL_ZOOM=0.85;
+  const realAlpha=Math.max(0,Math.min(.95,(view.scale-LABEL_ZOOM)/0.35));
+  ctx.font='15px "VT323",monospace'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  const want=[];
+  for(let i=0;i<nodes.length;i++){
+    const n=nodes[i], x=SX[i], y=SY[i];
+    if(x<-120||x>W+120||y<-40||y>H+40) continue;
+    const isFocus=i===focus, isNeigh=focus>=0&&neigh.has(i);
+    const isSeed=n.real && n.id.indexOf('DEC-')===0;   // the narrative decisions
+    let a=0, rank=4;
+    if(isFocus){a=1;rank=0;} else if(isNeigh){a=.95;rank=1;}
+    else if(isSeed){a=.95;rank=2;} else if(n.real){a=realAlpha;rank=3;}
+    if(a<=0.02) continue;
+    want.push({i,x,y,a,rank,isFocus,
+      t:n.statement.length>40? n.statement.slice(0,40)+'…' : n.statement});
+  }
+  want.sort((p,q)=>p.rank-q.rank);
+  const taken=[];
+  for(const L of want){
+    const w=ctx.measureText(L.t).width;
+    const lx=Math.round(L.x+10), ly=Math.round(L.y+5);
+    const box=[lx-3,ly-12,lx+w+3,ly+4];
+    let clash=false;
+    for(const b of taken){
+      if(box[0]<b[2]&&box[2]>b[0]&&box[1]<b[3]&&box[3]>b[1]){ clash=true; break; } }
+    if(clash) continue;
+    taken.push(box);
+    ctx.globalAlpha=L.a*.8; ctx.fillStyle='#0e0b1e'; ctx.fillRect(box[0],box[1],w+6,16);
+    ctx.globalAlpha=L.a; ctx.fillStyle=L.isFocus?'#ffffff':'#cfcaf0';
+    ctx.fillText(L.t,lx,ly);
   }
   ctx.globalAlpha=1;
-  // labels: hovered node (+ its neighbours) always; real nodes fade in as you
-  // zoom past the threshold so the default view stays uncluttered
-  const LABEL_ZOOM=0.85;
-  const realAlpha=Math.max(0,Math.min(.9,(view.scale-LABEL_ZOOM)/0.35));
-  ctx.font=`${12/view.scale}px -apple-system,sans-serif`; ctx.fillStyle='#eef2f8';
-  ctx.textAlign='center';
-  ctx.shadowColor='rgba(0,0,0,.85)'; ctx.shadowBlur=5/view.scale;
-  for(let i=0;i<nodes.length;i++){ const n=nodes[i];
-    const isHover=i===hover, isNeigh=hover>=0&&neigh.has(i);
-    const isSeed = n.real && n.id.indexOf('DEC-')===0;   // the 7 narrative decisions
-    let a=0;
-    if(isHover) a=1;
-    else if(isNeigh) a=0.9;
-    else if(isSeed) a=0.92;             // always labelled — they are the story
-    else if(n.real) a=realAlpha;        // generated real decisions fade in on zoom
-    if(a<=0.02) continue;
-    const t = n.statement.length>42? n.statement.slice(0,42)+'…':n.statement;
-    ctx.globalAlpha=a;
-    ctx.fillText(t, n.x, n.y - n.r - 5/view.scale);
-  }
-  ctx.shadowBlur=0; ctx.globalAlpha=1;
-  ctx.restore();
 }
 
 function loop(){
@@ -388,11 +618,26 @@ function loop(){
   if(vtarget){ view.x+=(vtarget.x-view.x)*.18; view.y+=(vtarget.y-view.y)*.18;
     view.scale+=(vtarget.scale-view.scale)*.18;
     if(Math.abs(vtarget.x-view.x)<.5&&Math.abs(vtarget.scale-view.scale)<.005) vtarget=null; }
-  draw(); requestAnimationFrame(loop);
+  draw();
+  const z=Math.round(view.scale*100)+'%';
+  if($('#s-zoom').textContent!==z) $('#s-zoom').textContent=z;
+  requestAnimationFrame(loop);
 }
 
 /* ---------- interaction ---------- */
 function toWorld(sx,sy){ return {x:(sx-W/2-view.x)/view.scale, y:(sy-H/2-view.y)/view.scale}; }
+function setFocus(i){
+  neigh=new Set(); if(i>=0){ neigh.add(i);
+    for(const e of edges){ if(e.s===i)neigh.add(e.t); if(e.t===i)neigh.add(e.s); } }
+}
+const IDLE='scroll to zoom · drag to pan · press / to ask';
+function readout(i){
+  const el=$('#s-read');
+  if(i<0){ el.textContent=IDLE; el.classList.add('idle'); return; }
+  const n=nodes[i];
+  el.classList.remove('idle');
+  el.textContent=`${n.topic} · ${n.statement}${n.real?'  ▸ click to open':''}`;
+}
 let drag=null;
 cv.addEventListener('mousedown',e=>{ vtarget=null; drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false}; });
 addEventListener('mouseup',()=>{ if(drag&&!drag.moved) clickNode(); drag=null; });
@@ -401,10 +646,9 @@ addEventListener('mousemove',e=>{
     if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>4) drag.moved=true; return; }
   const w=toWorld(e.clientX,e.clientY); let best=-1,bd=1e9;
   for(let i=0;i<nodes.length;i++){ const dx=nodes[i].x-w.x,dy=nodes[i].y-w.y,d=dx*dx+dy*dy;
-    if(d<bd && d < (nodes[i].r+6)**2){bd=d;best=i;} }
-  if(best!==hover){ hover=best; neigh=new Set();
-    if(best>=0){ neigh.add(best);
-      for(const e2 of edges){ if(e2.s===best)neigh.add(e2.t); if(e2.t===best)neigh.add(e2.s);} }
+    const hit=(nodes[i].px/2+5)/view.scale;
+    if(d<bd && d<hit*hit){bd=d;best=i;} }
+  if(best!==hover){ hover=best; if(pinned<0) setFocus(best); readout(best>=0?best:pinned);
     cv.style.cursor = best>=0 ? 'pointer':'default'; }
 });
 cv.addEventListener('wheel',e=>{ e.preventDefault(); vtarget=null;
@@ -412,63 +656,130 @@ cv.addEventListener('wheel',e=>{ e.preventDefault(); vtarget=null;
   const w=toWorld(e.clientX,e.clientY);
   view.scale=ns; view.x=e.clientX-W/2-w.x*ns; view.y=e.clientY-H/2-w.y*ns;
 },{passive:false});
-function clickNode(){ if(hover<0)return; const n=nodes[hover]; if(n.real) openDrawer(n.id); }
+function clickNode(){ if(hover<0) return; const n=nodes[hover]; if(n.real) openDrawer(n.id); }
+addEventListener('keydown',e=>{
+  if(e.key==='/' && document.activeElement!==$('#q') && document.activeElement!==$('#src')){
+    e.preventDefault(); $('#q').focus(); $('#q').select(); }
+  if(e.key==='Escape'){ if($('#scrim').classList.contains('open')) closeDialog();
+    else if($('#drawer').classList.contains('open')) closeDrawer(); else hideAnswer(); }
+});
 
 /* ---------- data + panels ---------- */
 async function refresh(){
   const [g,att,tok]=await Promise.all([jget('/api/graph'),jget('/api/attention'),jget('/api/tokens')]);
-  initGraph(g); renderAttention(att); renderLegend(g);
-  $('#tok').textContent=(tok.total>0?`⚡ ${tok.total} tokens · `:'')+`${g.nodes.length} decisions mapped`;
+  initGraph(g); renderAttention(att); renderKeys(g);
+  $('#s-nodes').textContent=g.nodes.length.toLocaleString();
+  $('#s-real').textContent=g.nodes.filter(n=>n.real).length;
+  $('#s-tok').textContent=(tok.total||0).toLocaleString();
 }
 function renderAttention(items){
   $('#attn-count').textContent=items.length;
-  $('#attention').innerHTML=items.map(a=>`
-    <div class="att ${a.type}" onclick="attnClick('${a.decision_id}')">
-      <div class="k">${a.type.replace(/_/g,' ')}</div>
-      <div class="m">${esc(a.message)}</div></div>`).join('')||'<div class="meta">All clear.</div>';
+  $('#attention').innerHTML = items.length ? items.map(a=>`
+    <button class="att ${a.type}" data-id="${a.decision_id}" onclick="attnClick('${a.decision_id}')">
+      <span class="h">${esc(a.title||a.type.replace(/_/g,' '))}</span>
+      <span class="m">${esc(a.message)}</span>
+      ${a.action&&a.action.label?`<span class="do">▸ ${esc(a.action.label)}</span>`:''}
+    </button>`).join('')
+    : '<div class="empty">Nothing needs attention. Add a source to keep the record current.</div>';
 }
-function renderLegend(g){
-  const counts={}; g.nodes.forEach(n=>{ if(n.hub)counts[n.hub]=(counts[n.hub]||0)+1; });
-  const hubs=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
-  $('#legend').innerHTML='<div class="k" style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.6px">hubs</div>'+
-    hubs.map(h=>`<div class="row"><span class="dot" style="background:${HUB_COLORS[h]||'#9aa3b0'}"></span>${esc(h)} <span style="color:var(--dim);margin-left:auto">${counts[h]}</span></div>`).join('');
+function renderKeys(g){
+  const counts={}; g.nodes.forEach(n=>counts[n.hub||'General']=(counts[n.hub||'General']||0)+1);
+  const hubs=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0,7);
+  $('#keys').innerHTML=
+    `<div class="grp">${hubs.map(h=>`<span class="k"><i class="sw" style="background:${HUB_COLORS[h]||'#7b75ab'}"></i>${esc(h)}</span>`).join('')}</div>`+
+    `<div class="grp">
+       <span class="k"><i class="ln" style="border-color:#7c74b4"></i>depends on</span>
+       <span class="k"><i class="ln" style="border-color:#ffb23d"></i>supersedes</span>
+       <span class="k"><i class="ln" style="border-color:#ff5cc8"></i>conflicts</span>
+       <span class="k"><i class="sw" style="box-shadow:inset 0 0 0 2px #7b75ab"></i>superseded</span>
+     </div>`;
 }
+function closeDrawer(){ const d=$('#drawer'); d.classList.remove('open'); d.setAttribute('aria-hidden','true');
+  pinned=-1; setFocus(hover); readout(hover); markActive(null); }
 async function openDrawer(id){
-  const d=await jget('/api/decision?id='+encodeURIComponent(id)); if(d.error)return;
-  $('#drawer').classList.add('open');
-  $('#drawer').innerHTML=`
-    <span class="x" onclick="document.getElementById('drawer').classList.remove('open')">✕</span>
-    <span class="badge ${d.status}">${d.status.replace('_',' ')}</span>
-    <h2 style="margin:14px 0 6px;font-size:17px">${esc(d.statement)}</h2>
-    <div class="meta">Owner: ${d.owner?esc(d.owner):'<span class="unowned-dot">unowned</span>'} · decided ${d.decided_on} · ${esc(d.topic)}</div>
-    ${d.source?`<div class="lbl">Source</div><a class="src" href="${d.source.link}" target="_blank">${esc(d.source.type)} — ${esc(d.source.link)}</a>`:''}
-    ${d.assumptions.length?`<div class="lbl">Assumptions</div>${d.assumptions.map(a=>`<div class="meta">• ${esc(a)}</div>`).join('')}`:''}
-    <div class="lbl">Evidence (verbatim)</div>
-    ${d.evidence.map(e=>`<div class="ev">“${esc(e.verbatim_quote)}”<br><a href="${e.link}" target="_blank">open in source ↗</a></div>`).join('')||'<div class="meta">—</div>'}
-    ${d.edges.length?`<div class="lbl">Relationships</div>${d.edges.map(e=>{const t=nodes[idMap[e.target_id]];return `<div class="meta">${esc(e.type.replace('_',' '))} → ${t?esc(t.statement):esc(e.target_id)}</div>`;}).join('')}`:''}`;
+  const d=await jget('/api/decision?id='+encodeURIComponent(id)); if(d.error) return;
+  const el=$('#drawer'); el.classList.add('open'); el.setAttribute('aria-hidden','false');
+  $('#drawer-id').textContent=d.id; markActive(d.id);
+  const i=idMap[d.id]; if(i!=null){ pinned=i; setFocus(i); readout(i); }
+  const rel=d.edges.map(e=>{ const t=nodes[idMap[e.target_id]];
+    return `<div class="rel ${e.type}"><span class="t">${esc(e.type.replace(/_/g,' '))}</span>
+      <button onclick="attnClick('${e.target_id}')">${t?esc(t.statement):esc(e.target_id)}</button></div>`;}).join('');
+  $('#drawer-body').innerHTML=`
+    <span class="stat ${d.status}">${esc(d.status.replace(/_/g,' '))}</span>
+    <h2>${esc(d.statement)}</h2>
+    <dl class="fields">
+      <dt>OWNER</dt><dd>${d.owner?esc(d.owner):'<span class="nobody">nobody yet</span>'}</dd>
+      <dt>DECIDED</dt><dd>${esc(d.decided_on)}</dd>
+      <dt>TOPIC</dt><dd>${esc(d.topic)}</dd>
+      ${d.source?`<dt>SOURCE</dt><dd><a href="${esc(d.source.link)}" target="_blank" rel="noopener">${esc(d.source.type)}</a></dd>`:''}
+    </dl>
+    ${d.assumptions.length?`<div class="sect">RESTS ON</div>${d.assumptions.map(a=>`<div class="assume">${esc(a)}</div>`).join('')}`:''}
+    <div class="sect">EVIDENCE, VERBATIM</div>
+    ${d.evidence.map(e=>`<div class="quote"><p>“${esc(e.verbatim_quote)}”</p><a href="${esc(e.link)}" target="_blank" rel="noopener">[ view source ]</a></div>`).join('')
+      || '<div class="empty">No quote captured for this one.</div>'}
+    ${rel?`<div class="sect">RELATED DECISIONS</div>${rel}`:''}`;
+  $('#drawer .scroll').scrollTop=0;
 }
-let answerTimer=null;
+
+/* ---------- ask ---------- */
+let speak=false, typer=null;
+function toggleSpeak(){ speak=!speak; $('#spk').setAttribute('aria-pressed',String(speak)); }
 async function ask(){
-  const q=$('#q').value.trim(); if(!q)return;
-  const r=await jpost('/api/query',{q}); const el=$('#answer'); el.style.display='block';
-  el.innerHTML=`<span class="x" onclick="hideAnswer()">✕</span>${esc(r.answer)}${r.citation?`<div class="cite">cited: “${esc(r.citation)}”</div>`:''}`;
-  clearTimeout(answerTimer); answerTimer=setTimeout(hideAnswer,8000);
+  const q=$('#q').value.trim(); if(!q) return;
+  const el=$('#readout'); el.style.display='block';
+  $('#readout-body').innerHTML=`<div class="echo"><em>?</em> ${esc(q)}</div><div class="ans">reading the record<span class="cur"></span></div>`;
+  const r=await jpost(speak?'/api/voice/ask':'/api/query',{q});
+  $('#readout-body').innerHTML=`<div class="echo"><em>?</em> ${esc(q)}</div>
+    <div class="ans" id="ans"></div>
+    ${r.citation?`<div class="cite">“${esc(r.citation)}”</div>`:''}`;
+  type($('#ans'), r.answer||'');
+  if(r.audio_b64) new Audio('data:audio/mpeg;base64,'+r.audio_b64).play().catch(()=>{});
   if(r.decision){ const i=idMap[r.decision.id]; if(i!=null) focusNode(i); }
 }
-function hideAnswer(){ $('#answer').style.display='none'; }
-function focusNode(i){ const n=nodes[i]; const s=1.15;
-  vtarget={scale:s, x:-n.x*s, y:-n.y*s}; hover=i; neigh=new Set([i]);
-  for(const e of edges){ if(e.s===i)neigh.add(e.t); if(e.t===i)neigh.add(e.s);} }
-function attnClick(id){ const i=idMap[id]; if(i!=null) focusNode(i); openDrawer(id); }
-function openModal(){ $('#scrim').classList.add('open'); }
-function closeModal(){ $('#scrim').classList.remove('open'); }
+function type(el,text){
+  clearInterval(typer);
+  if(REDUCED){ el.textContent=text; return; }
+  let i=0; el.innerHTML='<span></span><span class="cur"></span>';
+  const span=el.firstChild;
+  typer=setInterval(()=>{ i+=2; span.textContent=text.slice(0,i);
+    if(i>=text.length){ clearInterval(typer); el.lastChild.remove(); } },12);
+}
+function hideAnswer(){ clearInterval(typer); $('#readout').style.display='none'; }
+function focusNode(i){ const n=nodes[i], s=1.15;
+  vtarget={scale:s, x:-n.x*s, y:-n.y*s}; pinned=i; setFocus(i); readout(i); }
+function attnClick(id){ const i=idMap[id]; if(i!=null) focusNode(i); openDrawer(id);
+  document.querySelector('.rail').classList.remove('open'); }
+function markActive(id){
+  document.querySelectorAll('.att').forEach(b=>
+    b.setAttribute('aria-current', String(b.dataset.id===id))); }
+
+/* ---------- ingest ---------- */
+function openDialog(){ $('#scrim').classList.add('open'); note(''); $('#src').focus(); }
+function closeDialog(){ $('#scrim').classList.remove('open'); }
+function note(msg){ const n=$('#note'); n.textContent=msg; n.classList.toggle('on',!!msg); }
 async function ingest(){
-  const text=$('#src').value.trim(); if(!text)return;
-  const today=new Date().toISOString().slice(0,10);
-  const r=await jpost('/api/extract',{text,source_type:'paste',date:today});
-  $('#src').value=''; closeModal(); await refresh();
-  if(r.extracted&&r.extracted.length){ const id=r.extracted[0].id;
-    const i=idMap[id]; if(i!=null) focusNode(i); openDrawer(id); }
+  const text=$('#src').value.trim();
+  if(!text){ note('Paste something first — a thread, a transcript, or notes.'); return; }
+  note('');
+  const before=nodes.filter(n=>n.real).length;
+  const r=await jpost('/api/extract',{text,source_type:'paste',date:new Date().toISOString().slice(0,10)});
+  if(!r.extracted||!r.extracted.length){
+    note('No decision in there. The brain looks for a commitment — a line like “we decided to…”.');
+    return;
+  }
+  $('#src').value=''; closeDialog(); await refresh();
+  const d=r.extracted[0], i=idMap[d.id];
+  if(i!=null) focusNode(i);
+  openDrawer(d.id);
+  // say what the graph just learned, including anything it now contradicts
+  const clash=(d.edges||[]).filter(e=>e.type==='conflicts'||e.type==='supersedes');
+  const el=$('#readout'); el.style.display='block';
+  $('#readout-body').innerHTML=
+    `<div class="echo"><em>+</em> ${r.extracted.length} decision${r.extracted.length>1?'s':''} added to the graph</div>
+     <div class="ans" id="ans"></div>`;
+  type($('#ans'), clash.length
+    ? `${d.statement} — and it ${clash[0].type==='conflicts'?'conflicts with':'supersedes'} a decision already on record.`
+    : d.statement);
 }
 async function boot(){
   try{ state=await (await fetch('data.json')).json(); }
