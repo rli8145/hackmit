@@ -32,6 +32,11 @@ class Evidence:
 class Edge:
     type: str            # EdgeType
     target_id: str
+    # Why the graph believes this. An edge without a reason is a claim; with
+    # one it is evidence, and "why do those two conflict?" has an answer on
+    # stage. Defaulted so every existing Edge(type=, target_id=) still works.
+    confidence: float = 1.0
+    rationale: str = ""
 
 
 @dataclass

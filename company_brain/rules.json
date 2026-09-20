@@ -1,0 +1,34 @@
+[
+  {
+    "id": "live_overlap",
+    "type": "overlap",
+    "severity": 1,
+    "title": "Two live decisions cover the same ground",
+    "message": "“{statement}” overlaps “{other_statement}” — reconcile ({detail}).",
+    "action": { "label": "Reconcile the record", "field": "status", "value": "needs_review" }
+  },
+  {
+    "id": "superseded_unedited",
+    "type": "superseded",
+    "severity": 2,
+    "title": "A newer decision changed this; the old one still reads as-is",
+    "message": "“{statement}” was changed by a newer decision (“{other_statement}”) — check it still holds.",
+    "action": { "label": "Check it still holds", "field": "status", "value": "superseded" }
+  },
+  {
+    "id": "drifted_assumption",
+    "type": "assumption_drift",
+    "severity": 2,
+    "title": "The assumption underneath this has moved",
+    "message": "“{statement}” rests on an assumption that moved ({moved}) — re-verify.",
+    "action": { "label": "Re-verify", "field": "status", "value": "needs_review" }
+  },
+  {
+    "id": "unowned",
+    "type": "unowned",
+    "severity": 3,
+    "title": "Nobody is accountable",
+    "message": "“{statement}” has no owner — assign one.",
+    "action": { "label": "Assign an owner", "field": "owner", "value": null }
+  }
+]

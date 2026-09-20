@@ -6,7 +6,8 @@ Fully synthetic — NO real company data. Decisions are planted so the graph has
 the four attention triggers to catch:
 
   supersession   AWS -> GCP infra; free-tier 100 -> 50 calls
-  conflict       two live statements on the free tier before it's reconciled
+  conflict       sales quoting Pro at $59 while the pricing doc still says $49
+                 — both live, neither claims to replace the other (SRC-08)
   unowned        the Q2 hiring decision and the Pro pricing decision
   assumption     Pro price assumes "AWS infra costs" — which later moved to GCP
      drift
@@ -133,6 +134,25 @@ SOURCES: list[SeedSource] = [
             statement_gist="standardize on Python 3.12",
             topic="tech-stack", owner="dan",
             should_be_unowned=False, relation="none")],
+    ),
+    # SRC-08 is the conflict trap: it asserts a RIVAL VALUE for a topic that
+    # already has a live decision, and — unlike SRC-04/SRC-06 — it never says
+    # it is replacing anything. That is what separates a conflict from a
+    # supersession, and it is the case the gate demo turns on. It also lands
+    # unowned, so one node carries both attention triggers.
+    SeedSource(
+        id="SRC-08", type="slack", date="2026-03-12",
+        origin="#sales",
+        link="https://slack.example.com/sales/p312",
+        text=(
+            "maya: the sales deck still has the Pro plan at $59/month — that's "
+            "what we've been quoting all quarter.\n"
+            "maya: decision: price Pro at $59/month."
+        ),
+        labels=[LabeledDecision(
+            statement_gist="price Pro plan at $59 per month",
+            topic="pricing-pro", owner=None,
+            should_be_unowned=True, relation="conflicts")],
     ),
 ]
 

@@ -10,6 +10,14 @@ Metrics:
   owner accuracy         did we get owned/unowned right?
   supersession recall    of the relationships labeled "supersedes",
                          how many did the graph detect?
+  conflict recall        of the relationships labeled "conflicts", how many
+                         did the graph detect? This is the one the demo turns
+                         on: a rival live decision that nobody reconciled.
+  false edges            relationships the graph asserted that ground truth
+                         does not have. Reported on its own line because a
+                         confidently WRONG edge costs more than a missed one —
+                         the whole product is a claim about knowing what
+                         contradicts what.
 """
 
 from __future__ import annotations
@@ -30,6 +38,9 @@ class EvalResult:
     owner_correct: int = 0
     supersessions_expected: int = 0
     supersessions_found: int = 0
+    conflicts_expected: int = 0
+    conflicts_found: int = 0
+    false_edges: int = 0
     notes: list[str] = field(default_factory=list)
 
     @property
@@ -45,6 +56,11 @@ class EvalResult:
         return (round(self.supersessions_found / self.supersessions_expected, 3)
                 if self.supersessions_expected else 1.0)
 
+    @property
+    def conflict_recall(self) -> float:
+        return (round(self.conflicts_found / self.conflicts_expected, 3)
+                if self.conflicts_expected else 1.0)
+
     def render(self) -> str:
         return "\n".join([
             "┌─ EVAL (vs seed ground truth) ───────────────",
@@ -54,6 +70,10 @@ class EvalResult:
             f"│ owner accuracy         {self.owner_accuracy:>6.1%}",
             f"│ supersession recall    {self.supersession_recall:>6.1%}  "
             f"({self.supersessions_found}/{self.supersessions_expected})",
+            f"│ conflict recall        {self.conflict_recall:>6.1%}  "
+            f"({self.conflicts_found}/{self.conflicts_expected})",
+            f"│ false edges            {self.false_edges:>6}  "
+            f"(asserted, not in ground truth)",
             "└─────────────────────────────────────────────",
         ] + [f"  • {n}" for n in self.notes])
 
@@ -69,12 +89,56 @@ def run_eval(use_llm: bool | None = None) -> tuple[EvalResult, Brain]:
         brain.ingest(decisions)
         _score_extraction(s, decisions, res)
 
-    # supersession recall: labels marked "supersedes" that the graph caught
+    _score_relations(brain, res)
+    return res, brain
+
+
+def _score_relations(brain: Brain, res: EvalResult) -> None:
+    """Grade the edges the graph derived against the labeled relations.
+
+    A label says "the decision from this source supersedes / conflicts with an
+    earlier one on the same topic", so an edge is credited when its newer end
+    sits on a topic that was labeled with that relation. Anything else the
+    graph asserted is a false edge.
+    """
+    expected: set[tuple[str, str]] = set()
+    for s in SOURCES:
+        for lbl in s.labels:
+            if lbl.relation != "none":
+                expected.add((lbl.topic, lbl.relation))
     res.supersessions_expected = sum(
         1 for s in SOURCES for lbl in s.labels if lbl.relation == "supersedes")
-    found = sum(1 for d in brain.decisions for e in d.edges if e.type == "supersedes")
-    res.supersessions_found = found
-    return res, brain
+    res.conflicts_expected = sum(
+        1 for s in SOURCES for lbl in s.labels if lbl.relation == "conflicts")
+
+    by_id = {d.id: d for d in brain.decisions}
+    seen: set[frozenset] = set()
+    hit_topics: set[tuple[str, str]] = set()
+
+    for d in brain.decisions:
+        for e in d.edges:
+            other = by_id.get(e.target_id)
+            if other is None:
+                continue
+            pair = frozenset((d.id, other.id))
+            if (pair, e.type) in seen:      # conflicts are recorded on both ends
+                continue
+            seen.add((pair, e.type))
+            newer = d if d.decided_on >= other.decided_on else other
+            key = (newer.topic, e.type)
+            if key in expected:
+                hit_topics.add(key)
+                if e.type == "supersedes":
+                    res.supersessions_found += 1
+                elif e.type == "conflicts":
+                    res.conflicts_found += 1
+            else:
+                res.false_edges += 1
+                res.notes.append(
+                    f"false edge: {d.id} {e.type} {other.id} ({newer.topic})")
+
+    for topic, relation in sorted(expected - hit_topics):
+        res.notes.append(f"missed {relation} on {topic}")
 
 
 def _score_extraction(s: SeedSource, decisions: list[Decision], res: EvalResult) -> None:
