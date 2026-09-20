@@ -85,9 +85,27 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _body(self) -> dict:
-        n = int(self.headers.get("Content-Length", 0))
-        return json.loads(self.rfile.read(n) or b"{}")
+    def _body(self) -> dict | None:
+        """Parse the JSON request body, or return None if it is unusable.
+
+        Returning None (rather than raising) lets do_POST answer 400. An
+        uncaught exception here escapes BaseHTTPRequestHandler and drops the
+        connection with no response at all, which the browser sees as a
+        fetch that never resolves.
+        """
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except (TypeError, ValueError):
+            return None
+        if n <= 0:
+            return {}
+        try:
+            parsed = json.loads(self.rfile.read(n) or b"{}")
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return None
+        # A bare list/str/number is valid JSON but every caller below does
+        # .get() on this, so treat anything but an object as a bad request.
+        return parsed if isinstance(parsed, dict) else None
 
     # -- routes ------------------------------------------------------------
     def do_GET(self):
@@ -117,17 +135,22 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split("?")[0]
+        # Read the body exactly once, before dispatch: rfile cannot be
+        # re-read, and an unread body desyncs a keep-alive connection.
+        b = self._body()
+        if b is None:
+            self._json({"error": "request body must be a JSON object"}, 400)
+            return
         if path == "/api/extract":
-            b = self._body()
             new = extract(b.get("text", ""), b.get("source_type", "paste"),
                           b.get("link", "paste://ui"), b.get("date", "2026-03-15"))
             BRAIN.ingest(new)
             self._json({"extracted": [d.to_dict() for d in new],
                         "attention": BRAIN.attention()})
         elif path == "/api/query":
-            self._json(answer_query(BRAIN, self._body().get("q", "")))
+            self._json(answer_query(BRAIN, b.get("q", "")))
         elif path == "/api/voice/ask":
-            res = answer_query(BRAIN, self._body().get("q", ""))
+            res = answer_query(BRAIN, b.get("q", ""))
             audio = speak(res["answer"]) if res.get("answer") else None
             if audio:
                 res["audio_b64"] = base64.b64encode(audio).decode()
