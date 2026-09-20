@@ -1,6 +1,6 @@
 # Company Brain
 
-**The decision layer for an organization.** Company Brain reads the places a
+**The context hub for an organization.** Company Brain reads the places a
 team already talks — Slack, meeting transcripts, Notion, pasted notes, audio —
 extracts the **decisions** buried in the noise, and keeps them in a living,
 queryable **decision graph** with owners, verbatim evidence, and conflict

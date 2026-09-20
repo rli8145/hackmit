@@ -6,10 +6,10 @@
 <title>Company Brain</title>
 <style>
   :root{
-    --ink:#2b2f38; --dim:#6b7280; --accent:#7aa2ff; --accent2:#b79dff;
-    --glass:rgba(255,255,255,.55); --glass-strong:rgba(255,255,255,.72);
-    --stroke:rgba(255,255,255,.7); --shadow:0 8px 40px rgba(60,70,120,.16);
-    --live:#59c08a; --review:#e0a94a; --superseded:#9aa3b0;
+    --ink:#e7ecf3; --dim:#8b93a7; --accent:#7aa2ff; --accent2:#b79dff;
+    --glass:rgba(20,22,31,.62); --glass-strong:rgba(28,31,44,.78);
+    --stroke:rgba(255,255,255,.10); --shadow:0 10px 40px rgba(0,0,0,.55);
+    --live:#59c08a; --review:#e0a94a; --superseded:#7a8393;
     --red:#ef8b8b; --amber:#e0a94a; --violet:#b79dff;
   }
   *{box-sizing:border-box}
@@ -18,11 +18,9 @@
     color:var(--ink);overflow:hidden;
     font:14px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
     background:
-      radial-gradient(60vw 60vw at 12% 8%, #ffe3ec 0%, transparent 60%),
-      radial-gradient(55vw 55vw at 88% 12%, #dbe7ff 0%, transparent 60%),
-      radial-gradient(60vw 60vw at 75% 92%, #e3f9ee 0%, transparent 60%),
-      radial-gradient(50vw 50vw at 20% 95%, #efe3ff 0%, transparent 60%),
-      linear-gradient(120deg,#f4f6fb,#eef1f8);
+      radial-gradient(70vw 70vw at 50% 45%, #14131c 0%, transparent 62%),
+      radial-gradient(50vw 50vw at 85% 90%, #131019 0%, transparent 60%),
+      #08080c;
   }
   canvas{position:fixed;inset:0;display:block}
   .glass{
@@ -103,7 +101,7 @@
 <canvas id="graph"></canvas>
 
 <div class="topbar glass">
-  <div class="brand">Company Brain<small>the decision layer for your org</small></div>
+  <div class="brand">Company Brain<small>your org's context hub</small></div>
   <div class="grow"></div>
   <div class="askwrap">
     <input id="q" placeholder="Ask the brain…  e.g. what's our free tier?"
@@ -237,7 +235,7 @@ function nodeColor(n){ return HUB_COLORS[n.hub] || colorFor(n.topic||''); }
 /* ---------- canvas force graph ---------- */
 const cv=$('#graph'), ctx=cv.getContext('2d');
 let DPR=Math.min(2,window.devicePixelRatio||1), W=0,H=0;
-let nodes=[], edges=[], idMap={}, view={x:0,y:0,scale:.42}, alpha=1;
+let nodes=[], edges=[], idMap={}, view={x:0,y:0,scale:.6}, alpha=1;
 let hover=-1, neigh=new Set(), vtarget=null, hubAnchors={}, subAnchors={};
 const _zp=parseFloat(new URLSearchParams(location.search).get('zoom'));
 if(_zp) view.scale=Math.max(.12,Math.min(4,_zp));
@@ -252,61 +250,64 @@ function initGraph(g){
   const firstLoad = nodes.length===0;
   idMap={};
   nodes=g.nodes.map((n,i)=>{ idMap[n.id]=i; const p=prev[n.id];
-    return {...n, x:p?p.x:(Math.random()-.5)*1600, y:p?p.y:(Math.random()-.5)*1600,
+    return {...n, x:p?p.x:(Math.random()-.5)*1500, y:p?p.y:(Math.random()-.5)*1500,
             vx:p?p.vx:0, vy:p?p.vy:0, deg:0, _new:!p}; });
   edges=g.edges.filter(e=>idMap[e.source]!=null&&idMap[e.target]!=null)
     .map(e=>({s:idMap[e.source],t:idMap[e.target]}));
   edges.forEach(e=>{nodes[e.s].deg++;nodes[e.t].deg++;});
-  nodes.forEach(n=> n.r=(n.real?9:3.2)+Math.min(7,n.deg*0.45));
-  // two-level anchors: hubs on a wide ring (distinct islands), subclusters on
-  // an inner ring inside each hub (clear sub-blobs)
-  const hubs=[...new Set(nodes.map(n=>n.hub||'General'))].sort();
-  hubAnchors={}; const RH=1250;
-  hubs.forEach((h,i)=>{ const a=i/hubs.length*6.2832-1.57;
-    hubAnchors[h]={x:Math.cos(a)*RH, y:Math.sin(a)*RH}; });
-  const subsByHub={};
-  nodes.forEach(n=>{ const h=n.hub||'General', s=n.subcluster||n.topic||'_';
-    (subsByHub[h]=subsByHub[h]||new Set()).add(s); });
-  subAnchors={};
-  for(const h in subsByHub){ const list=[...subsByHub[h]].sort(), ha=hubAnchors[h];
-    const RS=list.length>1?330:0;
-    list.forEach((s,j)=>{ const a=j/list.length*6.2832;
-      subAnchors[h+'|'+s]={x:ha.x+Math.cos(a)*RS, y:ha.y+Math.sin(a)*RS}; }); }
-  nodes.forEach(n=>{ n._a=subAnchors[(n.hub||'General')+'|'+(n.subcluster||n.topic||'_')]||hubAnchors[n.hub||'General']; });
-  // seed brand-new (position-less) nodes at their anchor, not the origin
-  nodes.forEach(n=>{ if(n._new && n._a){ n.x=n._a.x+(Math.random()-.5)*90; n.y=n._a.y+(Math.random()-.5)*90; } });
-  // drop new nodes next to a linked, already-placed neighbour (not the void)
-  for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
-    if(a._new&&!b._new){a.x=b.x+(Math.random()-.5)*70;a.y=b.y+(Math.random()-.5)*70;a._new=false;}
-    else if(b._new&&!a._new){b.x=a.x+(Math.random()-.5)*70;b.y=a.y+(Math.random()-.5)*70;b._new=false;} }
-  alpha = firstLoad ? 1 : 0.3;   // gentle reheat on ingest, full settle on first load
+  nodes.forEach(n=> n.r=(n.real?10:2.6)+Math.min(10,n.deg*0.7));
+  // organic community layout — NO fixed ring. Nodes cluster by hub/subcluster
+  // via dynamic-centroid attraction in tick(); hubs push apart via centroid
+  // repulsion; cross-edges hold it in one connected mass (Obsidian-style).
+  // New nodes spawn near their group's current centroid.
+  const scen={},scnt={};
+  for(const n of nodes){ if(n._new)continue; const k=(n.hub||'')+'|'+(n.subcluster||'');
+    const c=scen[k]||(scen[k]={x:0,y:0}); c.x+=n.x;c.y+=n.y; scnt[k]=(scnt[k]||0)+1; }
+  nodes.forEach(n=>{ if(n._new){ const k=(n.hub||'')+'|'+(n.subcluster||''), c=scen[k];
+    if(c&&scnt[k]){ n.x=c.x/scnt[k]+(Math.random()-.5)*80; n.y=c.y/scnt[k]+(Math.random()-.5)*80; } } });
+  alpha = firstLoad ? 1 : 0.35;
 }
 
 function tick(){
   if(alpha<0.02) return;
-  const cell=70, grid=new Map();
+  // dynamic group centroids (organic community clustering)
+  const hcen={},hcnt={},scen={},scnt={};
+  for(const n of nodes){ const h=n.hub||'G';
+    let c=hcen[h]||(hcen[h]={x:0,y:0}); c.x+=n.x;c.y+=n.y; hcnt[h]=(hcnt[h]||0)+1;
+    const s=(n.hub||'')+'|'+(n.subcluster||'');
+    let d=scen[s]||(scen[s]={x:0,y:0}); d.x+=n.x;d.y+=n.y; scnt[s]=(scnt[s]||0)+1; }
+  for(const k in hcen){ hcen[k].x/=hcnt[k]; hcen[k].y/=hcnt[k]; }
+  for(const k in scen){ scen[k].x/=scnt[k]; scen[k].y/=scnt[k]; }
+  // node repulsion (local, via grid) — stops overlap, keeps blobs packed
+  const cell=60, grid=new Map();
   const key=(x,y)=>((x/cell|0)+'_'+(y/cell|0));
   for(let i=0;i<nodes.length;i++){ const k=key(nodes[i].x,nodes[i].y);
     let b=grid.get(k); if(!b){b=[];grid.set(k,b);} b.push(i); }
-  // repulsion (local, via grid) — enough to keep a sub-blob from collapsing
   for(const n of nodes){
     const cx=n.x/cell|0, cy=n.y/cell|0;
     for(let gx=cx-1;gx<=cx+1;gx++)for(let gy=cy-1;gy<=cy+1;gy++){
       const b=grid.get(gx+'_'+gy); if(!b)continue;
       for(const j of b){ const m=nodes[j]; if(m===n)continue;
         let dx=n.x-m.x, dy=n.y-m.y, d2=dx*dx+dy*dy+.01;
-        if(d2<cell*cell*4){ const f=430*alpha/d2; n.vx+=dx*f; n.vy+=dy*f; } } }
+        if(d2<cell*cell*4){ const f=270*alpha/d2; n.vx+=dx*f; n.vy+=dy*f; } } }
   }
-  // springs (weak — anchors dominate the layout)
+  // links pull connected nodes together → dense webby blobs
   for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
-    let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, f=(d-40)*0.01*alpha/d;
+    let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, f=(d-30)*0.02*alpha/d;
     a.vx+=dx*f; a.vy+=dy*f; b.vx-=dx*f; b.vy-=dy*f; }
-  // anchor gravity: strong pull to the node's subcluster anchor → tight
-  // sub-blobs inside well-separated hub islands
-  for(const n of nodes){ const a=n._a;
-    if(a){ n.vx+=(a.x-n.x)*0.05*alpha; n.vy+=(a.y-n.y)*0.05*alpha; }
-    n.x+=n.vx*=.85; n.y+=n.vy*=.85; }
-  alpha*=0.985;
+  // clustering + hub separation + integrate
+  for(const n of nodes){
+    const s=scen[(n.hub||'')+'|'+(n.subcluster||'')];
+    if(s){ n.vx+=(s.x-n.x)*0.14*alpha; n.vy+=(s.y-n.y)*0.14*alpha; }   // tight sub-blob
+    const h=hcen[n.hub||'G'];
+    if(h){ n.vx+=(h.x-n.x)*0.02*alpha; n.vy+=(h.y-n.y)*0.02*alpha; }   // hub cohesion
+    // push away from OTHER hubs' centroids → distinct but touching regions
+    for(const k in hcen){ if(k===(n.hub||'G'))continue; const c=hcen[k];
+      let dx=n.x-c.x, dy=n.y-c.y, d2=dx*dx+dy*dy+1;
+      if(d2<520*520){ const f=52000*alpha/d2; n.vx+=dx*f; n.vy+=dy*f; } }
+    n.vx-=n.x*0.02*alpha; n.vy-=n.y*0.02*alpha;                        // centering → compact mass
+    n.x+=n.vx*=.84; n.y+=n.vy*=.84; }
+  alpha*=0.987;
 }
 
 function draw(){
@@ -323,7 +324,7 @@ function draw(){
   // hub watermark (big, faint)
   ctx.font=`800 ${38/view.scale}px -apple-system,sans-serif`;
   for(const h in hc){ const x=hc[h].x/hn[h], y=hc[h].y/hn[h];
-    ctx.globalAlpha=0.13; ctx.fillStyle=HUB_COLORS[h]||'#888';
+    ctx.globalAlpha=0.20; ctx.fillStyle=HUB_COLORS[h]||'#888';
     ctx.fillText(h.toUpperCase(), x, y); }
   // subcluster labels (small, clearer) — the sub-blob names
   ctx.font=`600 ${12/view.scale}px -apple-system,sans-serif`;
@@ -333,13 +334,13 @@ function draw(){
   ctx.globalAlpha=1;
   // edges
   ctx.lineWidth=Math.max(.3,0.6/view.scale);
-  ctx.strokeStyle='rgba(120,130,170,.16)'; ctx.beginPath();
+  ctx.strokeStyle='rgba(170,72,72,.16)'; ctx.beginPath();
   for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
     ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); }
   ctx.stroke();
   // highlighted neighbor edges
   if(hover>=0){ ctx.lineWidth=Math.max(.8,1.4/view.scale);
-    ctx.strokeStyle='rgba(90,110,200,.5)'; ctx.beginPath();
+    ctx.strokeStyle='rgba(255,120,110,.6)'; ctx.beginPath();
     for(const e of edges){ if(e.s===hover||e.t===hover){
       const a=nodes[e.s], b=nodes[e.t]; ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); } }
     ctx.stroke(); }
@@ -357,8 +358,9 @@ function draw(){
   // zoom past the threshold so the default view stays uncluttered
   const LABEL_ZOOM=0.85;
   const realAlpha=Math.max(0,Math.min(.9,(view.scale-LABEL_ZOOM)/0.35));
-  ctx.font=`${12/view.scale}px -apple-system,sans-serif`; ctx.fillStyle='#2b2f38';
+  ctx.font=`${12/view.scale}px -apple-system,sans-serif`; ctx.fillStyle='#eef2f8';
   ctx.textAlign='center';
+  ctx.shadowColor='rgba(0,0,0,.85)'; ctx.shadowBlur=5/view.scale;
   for(let i=0;i<nodes.length;i++){ const n=nodes[i];
     const isHover=i===hover, isNeigh=hover>=0&&neigh.has(i);
     const isSeed = n.real && n.id.indexOf('DEC-')===0;   // the 7 narrative decisions
@@ -372,7 +374,7 @@ function draw(){
     ctx.globalAlpha=a;
     ctx.fillText(t, n.x, n.y - n.r - 5/view.scale);
   }
-  ctx.globalAlpha=1;
+  ctx.shadowBlur=0; ctx.globalAlpha=1;
   ctx.restore();
 }
 

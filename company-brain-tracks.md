@@ -1,6 +1,6 @@
 # Company Brain — HackMIT 2026 Project & Track Strategy
 
-> **One-liner:** Company Brain is the decision layer for an organization. It
+> **One-liner:** Company Brain is the context hub for an organization. It
 > reads everywhere your team already talks — Fellow meeting transcripts, Slack,
 > Notion, Docs — extracts the **decisions** buried in the noise, and keeps them
 > in a living, queryable **decision graph** with owners, evidence, and conflict

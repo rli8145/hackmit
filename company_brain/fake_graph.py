@@ -66,13 +66,16 @@ def generate(n: int = 1000, seed: int = 7) -> dict:
                 "topic": topic,
                 "real": False,
             })
-            # connect into the cluster (spanning tree) so groups stay cohesive
+            # connect into the cluster (spanning tree) so groups stay cohesive,
+            # plus extra intra-cluster links for a dense, webby blob
             if idx > cluster_start:
-                tgt = rng.randint(cluster_start, idx - 1)
-                etype = rng.choices(["depends_on", "supersedes", "conflicts"],
-                                    weights=[6, 3, 1])[0]
-                edges.append({"source": nid, "type": etype,
-                              "target": f"FAKE-{tgt:04d}"})
+                links = 1 + (1 if rng.random() < 0.6 else 0) + (1 if rng.random() < 0.25 else 0)
+                for _ in range(links):
+                    tgt = rng.randint(cluster_start, idx - 1)
+                    etype = rng.choices(["depends_on", "supersedes", "conflicts"],
+                                        weights=[6, 3, 1])[0]
+                    edges.append({"source": nid, "type": etype,
+                                  "target": f"FAKE-{tgt:04d}"})
             idx += 1
 
     # sparse cross-cluster links (real orgs have them) — kept few so hub

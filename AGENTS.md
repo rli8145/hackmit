@@ -11,7 +11,7 @@ teammates. This is the canonical agent-guidance file; `AGENT.md` is a copy —
 
 ## 1. One-liner
 
-**Company Brain is the decision layer for an organization.** It reads the places
+**Company Brain is the context hub for an organization.** It reads the places
 a team already talks — Slack, meeting transcripts, Notion, pasted notes, audio —
 extracts the **decisions** buried in the noise, and keeps them in a living,
 queryable **decision graph** with owners, evidence, and conflict detection.
