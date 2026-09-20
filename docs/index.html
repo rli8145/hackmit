@@ -139,12 +139,7 @@
 
 <script>
 const $ = s => document.querySelector(s);
-const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-
-/* ---------- static data layer (no backend) ----------
-   The hosted build bakes the graph/attention/decisions into data.json and
-   runs search + paste-extract in the browser, so jget/jpost route to local
-   state instead of an API. */
+/* ---------- static data layer (no backend): baked data + client search/extract ---------- */
 let state={graph:{nodes:[],edges:[]},attention:[],decisions:{}};
 async function jget(u){
   if(u==='/api/graph') return state.graph;
@@ -191,24 +186,28 @@ function _owner(lines){ const j=lines.join(' ').toLowerCase();
   if(/nobody|no one|tbd|unassigned|no owner/.test(j)) return null; return null; }
 function _topic(t){ t=t.toLowerCase(); let best='general',bh=0;
   for(const [k,ws] of _TOPICS){ const h=ws.filter(w=>t.includes(w)).length; if(h>bh){bh=h;best=k;} } return best; }
+const _HUB={infrastructure:'Backend',api:'Backend','public-api':'Backend',auth:'Backend',devops:'Backend',tech:'Backend','tech-stack':'Backend',
+  frontend:'Frontend',mobile:'Frontend',design:'Frontend',data:'Data & ML','data-platform':'Data & ML',ml:'Data & ML','ml-models':'Data & ML',analytics:'Data & ML',
+  security:'Security',compliance:'Security',pricing:'Finance',billing:'Finance',legal:'Finance',
+  marketing:'Social / GTM',sales:'Social / GTM',support:'Social / GTM',partnerships:'Social / GTM',hiring:'People/Product',roadmap:'People/Product'};
+function _hubOf(t){ if(!t)return 'General'; const p=t.split('-'); for(const c of [t,p[0],...p]){ if(_HUB[c])return _HUB[c]; } return 'General'; }
 function clientExtract(text){
   const lines=text.split('\n').map(s=>s.trim()).filter(Boolean);
   const dl=lines.filter(l=>_CUES.some(c=>l.toLowerCase().includes(c)));
   if(!dl.length) return {extracted:[],attention:state.attention};
   const best=dl.reduce((a,b)=>(_clean(b).length>_clean(a).length?b:a));
-  const stmt=_clean(best), owner=_owner(lines), topic=_topic(text);
+  const stmt=_clean(best), owner=_owner(lines), topic=_topic(text), hub=_hubOf(topic);
   const id='UI-'+Object.keys(state.decisions).length+'-'+(text.length%997);
   const link='paste://ui', today=new Date().toISOString().slice(0,10);
   const dec={id,statement:stmt,status:'live',owner,decided_on:today,
-    source:{type:'paste',link},evidence:dl.map(l=>({verbatim_quote:l,link})),assumptions:[],edges:[],topic,real:true};
-  // supersede a live same-topic decision if one exists (mirrors relate())
+    source:{type:'paste',link},evidence:dl.map(l=>({verbatim_quote:l,link})),assumptions:[],edges:[],topic,hub};
   let peer=Object.values(state.decisions).find(d=>d.topic===topic&&d.status==='live');
   if(peer){ dec.edges.push({type:'supersedes',target_id:peer.id}); peer.status='needs_review';
     const pn=state.graph.nodes.find(n=>n.id===peer.id); if(pn)pn.status='needs_review'; }
-  else { const near=state.graph.nodes.find(n=>n.topic&&topic.split('-').some(w=>n.topic.split('-').includes(w)));
+  else { const near=state.graph.nodes.find(n=>n.topic&&topic.split('-').some(w=>(n.topic||'').split('-').includes(w)));
     if(near) dec.edges.push({type:'depends_on',target_id:near.id}); }
   state.decisions[id]=dec;
-  state.graph.nodes.push({id,statement:stmt,status:'live',owner,topic,real:true});
+  state.graph.nodes.push({id,statement:stmt,status:'live',owner,topic,hub,subcluster:topic,real:true});
   dec.edges.forEach(e=>state.graph.edges.push({source:id,type:e.type,target:e.target_id}));
   const items=[...state.attention];
   if(peer) items.unshift({type:'superseded',decision_id:peer.id,
@@ -217,8 +216,12 @@ function clientExtract(text){
   state.attention=items;
   return {extracted:[dec],attention:items};
 }
+const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- soft topic colors ---------- */
+/* ---------- hubs (primary) + topic fallback colors ---------- */
+const HUB_COLORS={'Backend':'#7aa2ff','Frontend':'#59c08a','Data & ML':'#b79dff',
+  'Security':'#ef8b8b','Finance':'#e0a94a','Social / GTM':'#f19cd0',
+  'People/Product':'#5ec8d8','General':'#9aa3b0'};
 const PALETTE = ['#7aa2ff','#b79dff','#59c08a','#e0a94a','#ef8b8b','#5ec8d8',
   '#f19cd0','#8fd18a','#c3a3f0','#f5b880','#7fb2f0','#e78fa8','#9ad0b0','#d0b36e'];
 const topicColor = {};
@@ -229,12 +232,13 @@ function colorFor(topic){
   }
   return topicColor[topic];
 }
+function nodeColor(n){ return HUB_COLORS[n.hub] || colorFor(n.topic||''); }
 
 /* ---------- canvas force graph ---------- */
 const cv=$('#graph'), ctx=cv.getContext('2d');
 let DPR=Math.min(2,window.devicePixelRatio||1), W=0,H=0;
 let nodes=[], edges=[], idMap={}, view={x:0,y:0,scale:.55}, alpha=1;
-let hover=-1, neigh=new Set(), vtarget=null;
+let hover=-1, neigh=new Set(), vtarget=null, hubAnchors={};
 const _zp=parseFloat(new URLSearchParams(location.search).get('zoom'));
 if(_zp) view.scale=Math.max(.12,Math.min(4,_zp));
 
@@ -254,6 +258,15 @@ function initGraph(g){
     .map(e=>({s:idMap[e.source],t:idMap[e.target]}));
   edges.forEach(e=>{nodes[e.s].deg++;nodes[e.t].deg++;});
   nodes.forEach(n=> n.r=(n.real?9:3.2)+Math.min(7,n.deg*0.45));
+  // hub anchors on a ring — each hub becomes its own region of the graph
+  const hubs=[...new Set(nodes.map(n=>n.hub).filter(Boolean))].sort();
+  hubAnchors={}; const R=760;
+  hubs.forEach((h,i)=>{ const a=i/hubs.length*6.2832-1.57;
+    hubAnchors[h]={x:Math.cos(a)*R, y:Math.sin(a)*R}; });
+  nodes.forEach(n=>{ n._a=hubAnchors[n.hub]||null;
+    if(n._a && n._new===undefined){} });
+  // seed brand-new (position-less) nodes at their hub anchor, not the origin
+  nodes.forEach(n=>{ if(n._new && n._a){ n.x=n._a.x+(Math.random()-.5)*120; n.y=n._a.y+(Math.random()-.5)*120; } });
   // drop new nodes next to a linked, already-placed neighbour (not the void)
   for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
     if(a._new&&!b._new){a.x=b.x+(Math.random()-.5)*70;a.y=b.y+(Math.random()-.5)*70;a._new=false;}
@@ -280,8 +293,11 @@ function tick(){
   for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
     let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, f=(d-46)*0.02*alpha/d;
     a.vx+=dx*f; a.vy+=dy*f; b.vx-=dx*f; b.vy-=dy*f; }
-  // gravity + integrate
-  for(const n of nodes){ n.vx-=n.x*0.008*alpha; n.vy-=n.y*0.008*alpha;
+  // hub gravity: pull each node toward its hub anchor (forms hub regions) +
+  // a faint global pull so the whole thing stays framed
+  for(const n of nodes){ const a=n._a;
+    if(a){ n.vx+=(a.x-n.x)*0.02*alpha; n.vy+=(a.y-n.y)*0.02*alpha; }
+    n.vx-=n.x*0.002*alpha; n.vy-=n.y*0.002*alpha;
     n.x+=n.vx*=.86; n.y+=n.vy*=.86; }
   alpha*=0.985;
 }
@@ -290,6 +306,16 @@ function draw(){
   ctx.clearRect(0,0,W,H);
   ctx.save();
   ctx.translate(W/2+view.x, H/2+view.y); ctx.scale(view.scale,view.scale);
+  // hub watermark labels at each hub's centroid (soft, behind everything)
+  const cen={},cnt={};
+  for(const n of nodes){ if(!n.hub)continue; const c=cen[n.hub]||(cen[n.hub]={x:0,y:0});
+    c.x+=n.x; c.y+=n.y; cnt[n.hub]=(cnt[n.hub]||0)+1; }
+  ctx.textAlign='center';
+  ctx.font=`700 ${30/view.scale}px -apple-system,sans-serif`;
+  for(const h in cen){ const x=cen[h].x/cnt[h], y=cen[h].y/cnt[h];
+    ctx.globalAlpha=0.22; ctx.fillStyle=HUB_COLORS[h]||'#888';
+    ctx.fillText(h.toUpperCase(), x, y); }
+  ctx.globalAlpha=1;
   // edges
   ctx.lineWidth=Math.max(.3,0.6/view.scale);
   ctx.strokeStyle='rgba(120,130,170,.16)'; ctx.beginPath();
@@ -307,7 +333,7 @@ function draw(){
     const dim = hover>=0 && i!==hover && !neigh.has(i);
     ctx.globalAlpha = (n.status==='superseded'?0.4:1) * (dim?0.25:1);
     ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,6.2832);
-    ctx.fillStyle=colorFor(n.topic); ctx.fill();
+    ctx.fillStyle=nodeColor(n); ctx.fill();
     if(n.real){ ctx.lineWidth=2.4/view.scale; ctx.strokeStyle='#fff'; ctx.stroke();
       ctx.lineWidth=1.2/view.scale; ctx.strokeStyle='rgba(90,110,200,.9)'; ctx.stroke(); }
   }
@@ -380,9 +406,10 @@ function renderAttention(items){
       <div class="m">${esc(a.message)}</div></div>`).join('')||'<div class="meta">All clear.</div>';
 }
 function renderLegend(g){
-  const topics=[...new Set(g.nodes.map(n=>n.topic))].slice(0,6);
-  $('#legend').innerHTML='<div class="k" style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.6px">topics</div>'+
-    topics.map(t=>`<div class="row"><span class="dot" style="background:${colorFor(t)}"></span>${esc(t)}</div>`).join('');
+  const counts={}; g.nodes.forEach(n=>{ if(n.hub)counts[n.hub]=(counts[n.hub]||0)+1; });
+  const hubs=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+  $('#legend').innerHTML='<div class="k" style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.6px">hubs</div>'+
+    hubs.map(h=>`<div class="row"><span class="dot" style="background:${HUB_COLORS[h]||'#9aa3b0'}"></span>${esc(h)} <span style="color:var(--dim);margin-left:auto">${counts[h]}</span></div>`).join('');
 }
 async function openDrawer(id){
   const d=await jget('/api/decision?id='+encodeURIComponent(id)); if(d.error)return;
