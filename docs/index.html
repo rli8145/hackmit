@@ -237,8 +237,8 @@ function nodeColor(n){ return HUB_COLORS[n.hub] || colorFor(n.topic||''); }
 /* ---------- canvas force graph ---------- */
 const cv=$('#graph'), ctx=cv.getContext('2d');
 let DPR=Math.min(2,window.devicePixelRatio||1), W=0,H=0;
-let nodes=[], edges=[], idMap={}, view={x:0,y:0,scale:.55}, alpha=1;
-let hover=-1, neigh=new Set(), vtarget=null, hubAnchors={};
+let nodes=[], edges=[], idMap={}, view={x:0,y:0,scale:.42}, alpha=1;
+let hover=-1, neigh=new Set(), vtarget=null, hubAnchors={}, subAnchors={};
 const _zp=parseFloat(new URLSearchParams(location.search).get('zoom'));
 if(_zp) view.scale=Math.max(.12,Math.min(4,_zp));
 
@@ -258,15 +258,23 @@ function initGraph(g){
     .map(e=>({s:idMap[e.source],t:idMap[e.target]}));
   edges.forEach(e=>{nodes[e.s].deg++;nodes[e.t].deg++;});
   nodes.forEach(n=> n.r=(n.real?9:3.2)+Math.min(7,n.deg*0.45));
-  // hub anchors on a ring — each hub becomes its own region of the graph
-  const hubs=[...new Set(nodes.map(n=>n.hub).filter(Boolean))].sort();
-  hubAnchors={}; const R=760;
+  // two-level anchors: hubs on a wide ring (distinct islands), subclusters on
+  // an inner ring inside each hub (clear sub-blobs)
+  const hubs=[...new Set(nodes.map(n=>n.hub||'General'))].sort();
+  hubAnchors={}; const RH=1250;
   hubs.forEach((h,i)=>{ const a=i/hubs.length*6.2832-1.57;
-    hubAnchors[h]={x:Math.cos(a)*R, y:Math.sin(a)*R}; });
-  nodes.forEach(n=>{ n._a=hubAnchors[n.hub]||null;
-    if(n._a && n._new===undefined){} });
-  // seed brand-new (position-less) nodes at their hub anchor, not the origin
-  nodes.forEach(n=>{ if(n._new && n._a){ n.x=n._a.x+(Math.random()-.5)*120; n.y=n._a.y+(Math.random()-.5)*120; } });
+    hubAnchors[h]={x:Math.cos(a)*RH, y:Math.sin(a)*RH}; });
+  const subsByHub={};
+  nodes.forEach(n=>{ const h=n.hub||'General', s=n.subcluster||n.topic||'_';
+    (subsByHub[h]=subsByHub[h]||new Set()).add(s); });
+  subAnchors={};
+  for(const h in subsByHub){ const list=[...subsByHub[h]].sort(), ha=hubAnchors[h];
+    const RS=list.length>1?330:0;
+    list.forEach((s,j)=>{ const a=j/list.length*6.2832;
+      subAnchors[h+'|'+s]={x:ha.x+Math.cos(a)*RS, y:ha.y+Math.sin(a)*RS}; }); }
+  nodes.forEach(n=>{ n._a=subAnchors[(n.hub||'General')+'|'+(n.subcluster||n.topic||'_')]||hubAnchors[n.hub||'General']; });
+  // seed brand-new (position-less) nodes at their anchor, not the origin
+  nodes.forEach(n=>{ if(n._new && n._a){ n.x=n._a.x+(Math.random()-.5)*90; n.y=n._a.y+(Math.random()-.5)*90; } });
   // drop new nodes next to a linked, already-placed neighbour (not the void)
   for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
     if(a._new&&!b._new){a.x=b.x+(Math.random()-.5)*70;a.y=b.y+(Math.random()-.5)*70;a._new=false;}
@@ -276,29 +284,28 @@ function initGraph(g){
 
 function tick(){
   if(alpha<0.02) return;
-  const cell=90, grid=new Map();
+  const cell=70, grid=new Map();
   const key=(x,y)=>((x/cell|0)+'_'+(y/cell|0));
   for(let i=0;i<nodes.length;i++){ const k=key(nodes[i].x,nodes[i].y);
     let b=grid.get(k); if(!b){b=[];grid.set(k,b);} b.push(i); }
-  // repulsion (local, via grid)
+  // repulsion (local, via grid) — enough to keep a sub-blob from collapsing
   for(const n of nodes){
     const cx=n.x/cell|0, cy=n.y/cell|0;
     for(let gx=cx-1;gx<=cx+1;gx++)for(let gy=cy-1;gy<=cy+1;gy++){
       const b=grid.get(gx+'_'+gy); if(!b)continue;
       for(const j of b){ const m=nodes[j]; if(m===n)continue;
         let dx=n.x-m.x, dy=n.y-m.y, d2=dx*dx+dy*dy+.01;
-        if(d2<cell*cell*4){ const f=900*alpha/d2; n.vx+=dx*f; n.vy+=dy*f; } } }
+        if(d2<cell*cell*4){ const f=430*alpha/d2; n.vx+=dx*f; n.vy+=dy*f; } } }
   }
-  // springs
+  // springs (weak — anchors dominate the layout)
   for(const e of edges){ const a=nodes[e.s], b=nodes[e.t];
-    let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, f=(d-46)*0.02*alpha/d;
+    let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1, f=(d-40)*0.01*alpha/d;
     a.vx+=dx*f; a.vy+=dy*f; b.vx-=dx*f; b.vy-=dy*f; }
-  // hub gravity: pull each node toward its hub anchor (forms hub regions) +
-  // a faint global pull so the whole thing stays framed
+  // anchor gravity: strong pull to the node's subcluster anchor → tight
+  // sub-blobs inside well-separated hub islands
   for(const n of nodes){ const a=n._a;
-    if(a){ n.vx+=(a.x-n.x)*0.02*alpha; n.vy+=(a.y-n.y)*0.02*alpha; }
-    n.vx-=n.x*0.002*alpha; n.vy-=n.y*0.002*alpha;
-    n.x+=n.vx*=.86; n.y+=n.vy*=.86; }
+    if(a){ n.vx+=(a.x-n.x)*0.05*alpha; n.vy+=(a.y-n.y)*0.05*alpha; }
+    n.x+=n.vx*=.85; n.y+=n.vy*=.85; }
   alpha*=0.985;
 }
 
@@ -306,15 +313,23 @@ function draw(){
   ctx.clearRect(0,0,W,H);
   ctx.save();
   ctx.translate(W/2+view.x, H/2+view.y); ctx.scale(view.scale,view.scale);
-  // hub watermark labels at each hub's centroid (soft, behind everything)
-  const cen={},cnt={};
-  for(const n of nodes){ if(!n.hub)continue; const c=cen[n.hub]||(cen[n.hub]={x:0,y:0});
-    c.x+=n.x; c.y+=n.y; cnt[n.hub]=(cnt[n.hub]||0)+1; }
+  // hub + subcluster labels at their centroids (behind the nodes)
+  const hc={},hn={},sc={},sn={};
+  for(const n of nodes){
+    if(n.hub){ const c=hc[n.hub]||(hc[n.hub]={x:0,y:0}); c.x+=n.x;c.y+=n.y; hn[n.hub]=(hn[n.hub]||0)+1; }
+    if(n.subcluster){ const k=(n.hub||'')+'|'+n.subcluster;
+      const c=sc[k]||(sc[k]={x:0,y:0,h:n.hub,s:n.subcluster}); c.x+=n.x;c.y+=n.y; sn[k]=(sn[k]||0)+1; } }
   ctx.textAlign='center';
-  ctx.font=`700 ${30/view.scale}px -apple-system,sans-serif`;
-  for(const h in cen){ const x=cen[h].x/cnt[h], y=cen[h].y/cnt[h];
-    ctx.globalAlpha=0.22; ctx.fillStyle=HUB_COLORS[h]||'#888';
+  // hub watermark (big, faint)
+  ctx.font=`800 ${38/view.scale}px -apple-system,sans-serif`;
+  for(const h in hc){ const x=hc[h].x/hn[h], y=hc[h].y/hn[h];
+    ctx.globalAlpha=0.13; ctx.fillStyle=HUB_COLORS[h]||'#888';
     ctx.fillText(h.toUpperCase(), x, y); }
+  // subcluster labels (small, clearer) — the sub-blob names
+  ctx.font=`600 ${12/view.scale}px -apple-system,sans-serif`;
+  for(const k in sc){ if(sn[k]<3) continue; const c=sc[k], x=c.x/sn[k], y=c.y/sn[k];
+    ctx.globalAlpha=0.55; ctx.fillStyle=HUB_COLORS[c.h]||'#888';
+    ctx.fillText(c.s, x, y - 4/view.scale); }
   ctx.globalAlpha=1;
   // edges
   ctx.lineWidth=Math.max(.3,0.6/view.scale);

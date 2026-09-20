@@ -54,3 +54,24 @@ def hub_of(topic: str) -> str:
         if cand in HUB_OF:
             return HUB_OF[cand]
     return "General"
+
+
+# coarse subcluster families — the mid level between hub and individual node.
+# A granular topic ('data-platform-cdn', 'pricing-free-tier') collapses to its
+# family ('data-platform', 'pricing') so each hub shows a few clear sub-blobs
+# instead of dozens of singletons.
+_FAMILIES = ["data-platform", "public-api", "ml-models", "tech-stack",
+             "pricing", "billing", "infrastructure", "hiring", "security",
+             "compliance", "marketing", "sales", "support", "partnerships",
+             "frontend", "mobile", "analytics", "roadmap", "legal", "auth",
+             "devops"]
+
+
+def subcluster_of(topic: str) -> str:
+    """Collapse a topic to its coarse subcluster family."""
+    if not topic:
+        return "general"
+    for fam in sorted(_FAMILIES, key=len, reverse=True):
+        if topic == fam or topic.startswith(fam + "-"):
+            return fam
+    return topic.split("-")[0]

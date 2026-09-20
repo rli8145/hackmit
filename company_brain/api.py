@@ -24,7 +24,7 @@ import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from company_brain import fake_graph
-from company_brain.hubs import hub_of
+from company_brain.hubs import hub_of, subcluster_of
 from company_brain.extract import extract
 from company_brain.seed.corpus import SOURCES
 from company_brain.seed.synthetic import generate_decisions
@@ -62,13 +62,13 @@ def _full_graph() -> dict:
         pool = [fid for t, ids in fake_by_topic.items()
                 if words & set(t.split("-")) for fid in ids]
         pool = pool or [fn["id"] for fn in _FAKE["nodes"][:50]]
-        for fid in pool[:3]:
+        for fid in pool[:1]:
             edges.append({"source": rn["id"], "type": "depends_on", "target": fid})
 
     # tag every node with its hub + subcluster (agent- and human-navigable)
     for n in nodes:
         n["hub"] = hub_of(n.get("topic", ""))
-        n["subcluster"] = n.get("topic", "")
+        n["subcluster"] = subcluster_of(n.get("topic", ""))
     return {"nodes": nodes, "edges": edges}
 
 

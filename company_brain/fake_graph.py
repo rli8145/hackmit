@@ -75,8 +75,9 @@ def generate(n: int = 1000, seed: int = 7) -> dict:
                               "target": f"FAKE-{tgt:04d}"})
             idx += 1
 
-    # sparse cross-cluster links (real orgs have them)
-    for _ in range(n // 12):
+    # sparse cross-cluster links (real orgs have them) — kept few so hub
+    # islands stay visually distinct
+    for _ in range(n // 45):
         a, b = rng.randint(0, idx - 1), rng.randint(0, idx - 1)
         if a != b:
             edges.append({"source": f"FAKE-{a:04d}", "type": "depends_on",
